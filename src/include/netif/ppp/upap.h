@@ -116,12 +116,15 @@ typedef struct upap_state {
 #endif /* PAP_SUPPORT */
 
 
+void upap_init_static(void);
+
+
 void upap_authwithpeer(ppp_pcb *pcb, const char *user, const char *password);
 #if PPP_SERVER
 void upap_authpeer(ppp_pcb *pcb);
 #endif /* PPP_SERVER */
 
-extern const struct protent pap_protent;
+extern struct protent pap_protent;
 
 #ifdef __cplusplus
 }

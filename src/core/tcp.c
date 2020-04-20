@@ -141,19 +141,7 @@
 #define INITIAL_MSS TCP_MSS
 #endif
 
-static const char *const tcp_state_str[] = {
-  "CLOSED",
-  "LISTEN",
-  "SYN_SENT",
-  "SYN_RCVD",
-  "ESTABLISHED",
-  "FIN_WAIT_1",
-  "FIN_WAIT_2",
-  "CLOSE_WAIT",
-  "CLOSING",
-  "LAST_ACK",
-  "TIME_WAIT"
-};
+static const char * tcp_state_str[11];
 
 /* last local TCP port */
 static u16_t tcp_port = TCP_LOCAL_PORT_RANGE_START;
@@ -178,9 +166,7 @@ struct tcp_pcb *tcp_active_pcbs;
 struct tcp_pcb *tcp_tw_pcbs;
 
 /** An array with all (non-temporary) PCB lists, mainly used for smaller code size */
-struct tcp_pcb **const tcp_pcb_lists[] = {&tcp_listen_pcbs.pcbs, &tcp_bound_pcbs,
-         &tcp_active_pcbs, &tcp_tw_pcbs
-};
+struct tcp_pcb ** tcp_pcb_lists[4];
 
 u8_t tcp_active_pcbs_changed;
 
@@ -200,6 +186,23 @@ static void tcp_ext_arg_invoke_callbacks_destroyed(struct tcp_pcb_ext_args *ext_
 void
 tcp_init(void)
 {
+  tcp_state_str[0] = "CLOSED";
+  tcp_state_str[1] = "LISTEN";
+  tcp_state_str[2] = "SYN_SENT";
+  tcp_state_str[3] = "SYN_RCVD";
+  tcp_state_str[4] = "ESTABLISHED";
+  tcp_state_str[5] = "FIN_WAIT_1";
+  tcp_state_str[6] = "FIN_WAIT_2";
+  tcp_state_str[7] = "CLOSE_WAIT";
+  tcp_state_str[8] = "CLOSING";
+  tcp_state_str[9] = "LAST_ACK";
+  tcp_state_str[10] = "TIME_WAIT";
+
+  tcp_pcb_lists[0] = &tcp_listen_pcbs.pcbs;
+  tcp_pcb_lists[1] = &tcp_bound_pcbs;
+  tcp_pcb_lists[2] = &tcp_active_pcbs;
+  tcp_pcb_lists[3] = &tcp_tw_pcbs;
+
 #ifdef LWIP_RAND
   tcp_port = TCP_ENSURE_LOCAL_PORT_RANGE(LWIP_RAND());
 #endif /* LWIP_RAND */

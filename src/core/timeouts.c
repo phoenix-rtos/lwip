@@ -61,11 +61,7 @@
 #include "lwip/sys.h"
 #include "lwip/pbuf.h"
 
-#if LWIP_DEBUG_TIMERNAMES
-#define HANDLER(x) x, #x
-#else /* LWIP_DEBUG_TIMERNAMES */
-#define HANDLER(x) x
-#endif /* LWIP_DEBUG_TIMERNAMES */
+#define HANDLER_NAME(x) #x
 
 #define LWIP_MAX_TIMEOUT  0x7fffffff
 
@@ -74,47 +70,8 @@
 
 /** This array contains all stack-internal cyclic timers. To get the number of
  * timers, use LWIP_ARRAYSIZE() */
-const struct lwip_cyclic_timer lwip_cyclic_timers[] = {
-#if LWIP_TCP
-  /* The TCP timer is a special case: it does not have to run always and
-     is triggered to start from TCP using tcp_timer_needed() */
-  {TCP_TMR_INTERVAL, HANDLER(tcp_tmr)},
-#endif /* LWIP_TCP */
-#if LWIP_IPV4
-#if IP_REASSEMBLY
-  {IP_TMR_INTERVAL, HANDLER(ip_reass_tmr)},
-#endif /* IP_REASSEMBLY */
-#if LWIP_ARP
-  {ARP_TMR_INTERVAL, HANDLER(etharp_tmr)},
-#endif /* LWIP_ARP */
-#if LWIP_DHCP
-  {DHCP_COARSE_TIMER_MSECS, HANDLER(dhcp_coarse_tmr)},
-  {DHCP_FINE_TIMER_MSECS, HANDLER(dhcp_fine_tmr)},
-#endif /* LWIP_DHCP */
-#if LWIP_AUTOIP
-  {AUTOIP_TMR_INTERVAL, HANDLER(autoip_tmr)},
-#endif /* LWIP_AUTOIP */
-#if LWIP_IGMP
-  {IGMP_TMR_INTERVAL, HANDLER(igmp_tmr)},
-#endif /* LWIP_IGMP */
-#endif /* LWIP_IPV4 */
-#if LWIP_DNS
-  {DNS_TMR_INTERVAL, HANDLER(dns_tmr)},
-#endif /* LWIP_DNS */
-#if LWIP_IPV6
-  {ND6_TMR_INTERVAL, HANDLER(nd6_tmr)},
-#if LWIP_IPV6_REASS
-  {IP6_REASS_TMR_INTERVAL, HANDLER(ip6_reass_tmr)},
-#endif /* LWIP_IPV6_REASS */
-#if LWIP_IPV6_MLD
-  {MLD6_TMR_INTERVAL, HANDLER(mld6_tmr)},
-#endif /* LWIP_IPV6_MLD */
-#if LWIP_IPV6_DHCP6
-  {DHCP6_TIMER_MSECS, HANDLER(dhcp6_tmr)},
-#endif /* LWIP_IPV6_DHCP6 */
-#endif /* LWIP_IPV6 */
-};
-const int lwip_num_cyclic_timers = LWIP_ARRAYSIZE(lwip_cyclic_timers);
+struct lwip_cyclic_timer lwip_cyclic_timers[12];
+int lwip_num_cyclic_timers;
 
 #if LWIP_TIMERS && !LWIP_TIMERS_CUSTOM
 
@@ -264,8 +221,114 @@ lwip_cyclic_timer(void *arg)
 void sys_timeouts_init(void)
 {
   size_t i;
+
+  i = 0;
+
+  #if LWIP_TCP
+  /* The TCP timer is a special case: it does not have to run always and
+     is triggered to start from TCP using tcp_timer_needed() */
+    lwip_cyclic_timers[i].interval_ms = TCP_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = tcp_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(tcp_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_TCP */
+
+  #if LWIP_IPV4
+  #if IP_REASSEMBLY
+    lwip_cyclic_timers[i].interval_ms = IP_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = ip_reass_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(ip_reass_tmr);
+    #endif
+    i++;
+  #endif /* IP_REASSEMBLY */
+  #if LWIP_ARP
+    lwip_cyclic_timers[i].interval_ms = ARP_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = etharp_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(etharp_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_ARP */
+  #if LWIP_DHCP
+    lwip_cyclic_timers[i].interval_ms = DHCP_COARSE_TIMER_MSECS;
+    lwip_cyclic_timers[i].handler = dhcp_coarse_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(dhcp_coarse_tmr);
+    #endif
+    i++;
+
+    lwip_cyclic_timers[i].interval_ms = DHCP_FINE_TIMER_MSECS;
+    lwip_cyclic_timers[i].handler = dhcp_fine_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(dhcp_fine_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_DHCP */
+  #if LWIP_AUTOIP
+    lwip_cyclic_timers[i].interval_ms = AUTOIP_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = autoip_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(autoip_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_AUTOIP */
+  #if LWIP_IGMP
+    lwip_cyclic_timers[i].interval_ms = IGMP_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = igmp_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(igmp_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_IGMP */
+  #endif /* LWIP_IPV4 */
+  #if LWIP_DNS
+    lwip_cyclic_timers[i].interval_ms = DNS_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = dns_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(dns_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_DNS */
+  #if LWIP_IPV6
+    lwip_cyclic_timers[i].interval_ms = ND6_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = nd6_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(nd6_tmr);
+    #endif
+    i++;
+  #if LWIP_IPV6_REASS
+    lwip_cyclic_timers[i].interval_ms = IP6_REASS_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = ip6_reass_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(ip6_reass_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_IPV6_REASS */
+  #if LWIP_IPV6_MLD
+    lwip_cyclic_timers[i].interval_ms = MLD6_TMR_INTERVAL;
+    lwip_cyclic_timers[i].handler = mld6_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(mld6_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_IPV6_MLD */
+  #if LWIP_IPV6_DHCP6
+    lwip_cyclic_timers[i].interval_ms = DHCP6_TIMER_MSECS;
+    lwip_cyclic_timers[i].handler = dhcp6_tmr;
+    #if LWIP_DEBUG_TIMERNAMES
+    lwip_cyclic_timers[i].handler_name = HANDLER_NAME(dhcp6_tmr);
+    #endif
+    i++;
+  #endif /* LWIP_IPV6_DHCP6 */
+  #endif /* LWIP_IPV6 */
+
+  lwip_num_cyclic_timers = i;
+
   /* tcp_tmr() at index 0 is started on demand */
-  for (i = (LWIP_TCP ? 1 : 0); i < LWIP_ARRAYSIZE(lwip_cyclic_timers); i++) {
+  for (i = (LWIP_TCP ? 1 : 0); i < lwip_num_cyclic_timers; i++) {
     /* we have to cast via size_t to get rid of const warning
       (this is OK as cyclic_timer() casts back to const* */
     sys_timeout(lwip_cyclic_timers[i].interval_ms, lwip_cyclic_timer, LWIP_CONST_CAST(void *, &lwip_cyclic_timers[i]));

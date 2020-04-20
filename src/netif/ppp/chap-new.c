@@ -109,20 +109,71 @@ static int chap_print_pkt(const unsigned char *p, int plen,
 #endif /* PRINTPKT_SUPPORT */
 
 /* List of digest types that we know about */
-static const struct chap_digest_type* const chap_digests[] = {
-    &md5_digest,
 #if MSCHAP_SUPPORT
-    &chapms_digest,
-    &chapms2_digest,
+static struct chap_digest_type* chap_digests[4];
+#else
+static struct chap_digest_type* chap_digests[2];
 #endif /* MSCHAP_SUPPORT */
-    NULL
-};
+
+struct protent chap_protent;
+
+#if PRINTPKT_SUPPORT
+static char* const chap_code_names[4];
+#endif
+
+void chap_init_static(void) {
+#if PRINTPKT_SUPPORT
+	chap_code_names[0] = "Challenge";
+	chap_code_names[1] = "Response";
+	chap_code_names[2] = "Success";
+	chap_code_names[3] = "Failure";
+#endif
+
+	chap_md5_init_static();
+	chap_ms_init_static();
+
+	chap_protent.protocol = PPP_CHAP;
+    chap_protent.init = chap_init;
+    chap_protent.input = chap_input;
+    chap_protent.protrej = chap_protrej;
+    chap_protent.lowerup = chap_lowerup;
+    chap_protent.lowerdown = chap_lowerdown;
+    chap_protent.open = NULL;
+    chap_protent.close = NULL;
+    #if PRINTPKT_SUPPORT
+    chap_protent.printpkt = chap_print_pkt;
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_DATAINPUT
+    chap_protent.datainput = NULL;
+    #endif /* PPP_DATAINPUT */
+    #if PRINTPKT_SUPPORT
+        "CHAP",
+        NULL,
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_OPTIONS
+    chap_protent.name = chap_option_list;
+    chap_protent.data_name = NULL;
+    #endif /* PPP_OPTIONS */
+    #if DEMAND_SUPPORT
+    chap_protent.demand_conf = NULL;
+    chap_protent.active_pkt = NULL;
+    #endif /* DEMAND_SUPPORT */
+}
 
 /*
  * chap_init - reset to initial state.
  */
 static void chap_init(ppp_pcb *pcb) {
 	LWIP_UNUSED_ARG(pcb);
+
+	chap_digests[0] = &md5_digest;
+#if MSCHAP_SUPPORT
+	chap_digests[1] = &chapms_digest;
+	chap_digests[2] = &chapms2_digest;
+	chap_digests[3] = NULL;
+#else
+	chap_digests[1] = NULL;
+#endif /* MSCHAP_SUPPORT */
 
 #if 0 /* Not necessary, everything is cleared in ppp_new() */
 	memset(&pcb->chap_client, 0, sizeof(chap_client_state));
@@ -586,9 +637,6 @@ static void chap_protrej(ppp_pcb *pcb) {
 /*
  * chap_print_pkt - print the contents of a CHAP packet.
  */
-static const char* const chap_code_names[] = {
-	"Challenge", "Response", "Success", "Failure"
-};
 
 static int chap_print_pkt(const unsigned char *p, int plen,
 	       void (*printer) (void *, const char *, ...), void *arg) {
@@ -644,34 +692,5 @@ static int chap_print_pkt(const unsigned char *p, int plen,
 	return len + CHAP_HDRLEN;
 }
 #endif /* PRINTPKT_SUPPORT */
-
-const struct protent chap_protent = {
-	PPP_CHAP,
-	chap_init,
-	chap_input,
-	chap_protrej,
-	chap_lowerup,
-	chap_lowerdown,
-	NULL,		/* open */
-	NULL,		/* close */
-#if PRINTPKT_SUPPORT
-	chap_print_pkt,
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_DATAINPUT
-	NULL,		/* datainput */
-#endif /* PPP_DATAINPUT */
-#if PRINTPKT_SUPPORT
-	"CHAP",		/* name */
-	NULL,		/* data_name */
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_OPTIONS
-	chap_option_list,
-	NULL,		/* check_options */
-#endif /* PPP_OPTIONS */
-#if DEMAND_SUPPORT
-	NULL,
-	NULL
-#endif /* DEMAND_SUPPORT */
-};
 
 #endif /* PPP_SUPPORT && CHAP_SUPPORT */

@@ -58,19 +58,19 @@ typedef enum {
 #include "lwip/priv/memp_priv.h"
 #include "lwip/stats.h"
 
-extern const struct memp_desc* const memp_pools[MEMP_MAX];
+extern struct memp_desc* memp_pools[MEMP_MAX];
 
 /**
  * @ingroup mempool
  * Declare prototype for private memory pool if it is used in multiple files
  */
-#define LWIP_MEMPOOL_PROTOTYPE(name) extern const struct memp_desc memp_ ## name
+#define LWIP_MEMPOOL_PROTOTYPE(name) extern struct memp_desc memp_ ## name
 
 #if MEMP_MEM_MALLOC
 
 #define LWIP_MEMPOOL_DECLARE(name,num,size,desc) \
   LWIP_MEMPOOL_DECLARE_STATS_INSTANCE(memp_stats_ ## name) \
-  const struct memp_desc memp_ ## name = { \
+  struct memp_desc memp_ ## name = { \
     DECLARE_LWIP_MEMPOOL_DESC(desc) \
     LWIP_MEMPOOL_DECLARE_STATS_REFERENCE(memp_stats_ ## name) \
     LWIP_MEM_ALIGN_SIZE(size) \

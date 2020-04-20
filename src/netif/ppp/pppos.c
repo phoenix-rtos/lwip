@@ -76,18 +76,7 @@ static err_t pppos_output_append(pppos_pcb *pppos, err_t err, struct pbuf *nb, u
 static err_t pppos_output_last(pppos_pcb *pppos, err_t err, struct pbuf *nb, u16_t *fcs);
 
 /* Callbacks structure for PPP core */
-static const struct link_callbacks pppos_callbacks = {
-  pppos_connect,
-#if PPP_SERVER
-  pppos_listen,
-#endif /* PPP_SERVER */
-  pppos_disconnect,
-  pppos_destroy,
-  pppos_write,
-  pppos_netif_output,
-  pppos_send_config,
-  pppos_recv_config
-};
+static struct link_callbacks pppos_callbacks;
 
 /* PPP's Asynchronous-Control-Character-Map.  The mask array is used
  * to select the specific bit for a character. */
@@ -164,6 +153,19 @@ ppp_get_fcs(u8_t byte)
 #define PPPOS_PROTECT(lev)
 #define PPPOS_UNPROTECT(lev)
 #endif /* PPP_INPROC_IRQ_SAFE */
+
+void pppos_init(void) {
+  pppos_callbacks.connect = pppos_connect;
+#if PPP_SERVER
+  pppos_callbacks.listen = pppos_listen;
+#endif
+  pppos_callbacks.disconnect = pppos_disconnect;
+  pppos_callbacks.free = pppos_destroy;
+  pppos_callbacks.write = pppos_write;
+  pppos_callbacks.netif_output = pppos_netif_output;
+  pppos_callbacks.send_config = pppos_send_config;
+  pppos_callbacks.recv_config = pppos_recv_config;
+}
 
 
 /*

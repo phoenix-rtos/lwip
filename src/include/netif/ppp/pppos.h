@@ -97,6 +97,8 @@ struct pppos_pcb_s {
   u8_t in_escaped;                 /* Escape next character. */
 };
 
+void pppos_init(void);
+
 /* Create a new PPPoS session. */
 ppp_pcb *pppos_create(struct netif *pppif, pppos_output_cb_fn output_cb,
        ppp_link_status_cb_fn link_status_cb, void *ctx_cb);

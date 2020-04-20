@@ -157,13 +157,15 @@ typedef struct lcp_options {
     struct epdisc endpoint;	/* endpoint discriminator */
 } lcp_options;
 
+void lcp_init_static(void);
+
 void lcp_open(ppp_pcb *pcb);
 void lcp_close(ppp_pcb *pcb, const char *reason);
 void lcp_lowerup(ppp_pcb *pcb);
 void lcp_lowerdown(ppp_pcb *pcb);
 void lcp_sprotrej(ppp_pcb *pcb, u_char *p, int len);    /* send protocol reject */
 
-extern const struct protent lcp_protent;
+extern struct protent lcp_protent;
 
 #if 0 /* moved to ppp_opts.h */
 /* Default number of times we receive our magic number from the peer

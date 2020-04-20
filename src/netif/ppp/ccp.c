@@ -179,34 +179,7 @@ static int ccp_printpkt(const u_char *p, int plen, void (*printer) (void *, cons
 static void ccp_datainput(ppp_pcb *pcb, u_char *pkt, int len);
 #endif /* PPP_DATAINPUT */
 
-const struct protent ccp_protent = {
-    PPP_CCP,
-    ccp_init,
-    ccp_input,
-    ccp_protrej,
-    ccp_lowerup,
-    ccp_lowerdown,
-    ccp_open,
-    ccp_close,
-#if PRINTPKT_SUPPORT
-    ccp_printpkt,
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_DATAINPUT
-    ccp_datainput,
-#endif /* PPP_DATAINPUT */
-#if PRINTPKT_SUPPORT
-    "CCP",
-    "Compressed",
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_OPTIONS
-    ccp_option_list,
-    NULL,
-#endif /* PPP_OPTIONS */
-#if DEMAND_SUPPORT
-    NULL,
-    NULL
-#endif /* DEMAND_SUPPORT */
-};
+struct protent ccp_protent;
 
 /*
  * Callbacks for fsm code.
@@ -224,23 +197,8 @@ static int  ccp_extcode (fsm *, int, int, u_char *, int);
 static void ccp_rack_timeout (void *);
 static const char *method_name (ccp_options *, ccp_options *);
 
-static const fsm_callbacks ccp_callbacks = {
-    ccp_resetci,
-    ccp_cilen,
-    ccp_addci,
-    ccp_ackci,
-    ccp_nakci,
-    ccp_rejci,
-    ccp_reqci,
-    ccp_up,
-    ccp_down,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    ccp_extcode,
-    "CCP"
-};
+static fsm_callbacks ccp_callbacks;
+
 
 /*
  * Do we want / did we get any compression?
@@ -361,6 +319,77 @@ setdeflate(argv)
     return 1;
 }
 #endif /* PPP_OPTIONS */
+
+void ccp_init_static(void) {
+    ccp_protent.protocol = PPP_CCP;
+    ccp_protent.init = ccp_init;
+    ccp_protent.input = ccp_input;
+    ccp_protent.protrej = ccp_protrej;
+    ccp_protent.lowerup = ccp_lowerup;
+    ccp_protent.lowerdown = ccp_lowerdown;
+    ccp_protent.open = ccp_open;
+    ccp_protent.close = ccp_close;
+    #if PRINTPKT_SUPPORT
+    ccp_protent.printpkt = ccp_printpkt;
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_DATAINPUT
+    ccp_protent.datainput = ccp_datainput;
+    #endif /* PPP_DATAINPUT */
+    #if PRINTPKT_SUPPORT
+        "CCP",
+        "Compressed",
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_OPTIONS
+    ccp_protent.name = ccp_option_list;
+    ccp_protent.data_name = NULL;
+    #endif /* PPP_OPTIONS */
+    #if DEMAND_SUPPORT
+    ccp_protent.demand_conf = NULL;
+    ccp_protent.active_pkt = NULL;
+    #endif /* DEMAND_SUPPORT */
+
+    ccp_callbacks.resetci = ccp_resetci;
+    ccp_callbacks.cilen = ccp_cilen;
+    ccp_callbacks.addci = ccp_addci;
+    ccp_callbacks.ackci = ccp_ackci;
+    ccp_callbacks.nakci = ccp_nakci;
+    ccp_callbacks.rejci = ccp_rejci;
+    ccp_callbacks.reqci = ccp_reqci;
+    ccp_callbacks.up = ccp_up;
+    ccp_callbacks.down = ccp_down;
+    ccp_callbacks.starting = NULL;
+    ccp_callbacks.finished = NULL;
+    ccp_callbacks.protreject = NULL;
+    ccp_callbacks.retransmit = NULL;
+    ccp_callbacks.extcode = ccp_extcode;
+    ccp_callbacks.proto_name = "CCP";
+
+    #if PRINTPKT_SUPPORT
+    #define ARR_ELEM(ARR, IDX, VAL) do { \
+      (ARR)[IDX] = (VAL); \
+      (IDX)++; \
+    } while (0)
+
+    {
+      int i = 0;
+      ARR_ELEM(ccp_codenames, i, "ConfReq");
+      ARR_ELEM(ccp_codenames, i, "ConfAck");
+      ARR_ELEM(ccp_codenames, i, "ConfNak");
+      ARR_ELEM(ccp_codenames, i, "ConfRej");
+      ARR_ELEM(ccp_codenames, i, "TermReq");
+      ARR_ELEM(ccp_codenames, i, "TermAck");
+      ARR_ELEM(ccp_codenames, i, "CodeRej");
+      ARR_ELEM(ccp_codenames, i, NULL);
+      ARR_ELEM(ccp_codenames, i, NULL);
+      ARR_ELEM(ccp_codenames, i, NULL);
+      ARR_ELEM(ccp_codenames, i, NULL);
+      ARR_ELEM(ccp_codenames, i, NULL);
+      ARR_ELEM(ccp_codenames, i, NULL);
+      ARR_ELEM(ccp_codenames, i, "ResetReq");
+      ARR_ELEM(ccp_codenames, i, "ResetAck");
+    }
+    #endif
+}
 
 /*
  * ccp_init - initialize CCP.
@@ -1512,12 +1541,7 @@ static void ccp_down(fsm *f) {
 /*
  * Print the contents of a CCP packet.
  */
-static const char* const ccp_codenames[] = {
-    "ConfReq", "ConfAck", "ConfNak", "ConfRej",
-    "TermReq", "TermAck", "CodeRej",
-    NULL, NULL, NULL, NULL, NULL, NULL,
-    "ResetReq", "ResetAck",
-};
+static char* const ccp_codenames[];
 
 static int ccp_printpkt(const u_char *p, int plen, void (*printer) (void *, const char *, ...), void *arg) {
     const u_char *p0, *optend;

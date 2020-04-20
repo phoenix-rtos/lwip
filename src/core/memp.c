@@ -78,10 +78,7 @@
 #define LWIP_MEMPOOL(name,num,size,desc) LWIP_MEMPOOL_DECLARE(name,num,size,desc)
 #include "lwip/priv/memp_std.h"
 
-const struct memp_desc *const memp_pools[MEMP_MAX] = {
-#define LWIP_MEMPOOL(name,num,size,desc) &memp_ ## name,
-#include "lwip/priv/memp_std.h"
-};
+struct memp_desc * memp_pools[MEMP_MAX];
 
 #ifdef LWIP_HOOK_FILENAME
 #include LWIP_HOOK_FILENAME
@@ -224,6 +221,24 @@ void
 memp_init(void)
 {
   u16_t i;
+
+  {
+    i = 0;
+    #define LWIP_MEMPOOL(name,num,size,desc) do { \
+       memp_pools[i] = &memp_ ## name; \
+       i++; \
+    } while (0);
+    #include "lwip/priv/memp_std.h"
+
+    #if defined(LWIP_DEBUG) || MEMP_OVERFLOW_CHECK || LWIP_STATS_DISPLAY
+    i = 0;
+    #define LWIP_MEMPOOL(name,num,size,_desc) do { \
+       (memp_ ## name).desc = _desc; \
+       i++; \
+    } while (0);
+    #include "lwip/priv/memp_std.h"
+    #endif
+  }
 
   /* for every pool: */
   for (i = 0; i < LWIP_ARRAYSIZE(memp_pools); i++) {

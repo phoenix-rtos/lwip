@@ -48,6 +48,8 @@
 #define MD5_MAX_CHALLENGE	24
 #define MD5_MIN_MAX_POWER_OF_TWO_CHALLENGE     3   /* 2^3-1 = 7, 17+7 = 24 */
 
+struct chap_digest_type md5_digest;
+
 #if PPP_SERVER
 static void chap_md5_generate_challenge(ppp_pcb *pcb, unsigned char *cp) {
 	int clen;
@@ -112,15 +114,15 @@ static void chap_md5_make_response(ppp_pcb *pcb, unsigned char *response, int id
 	response[0] = MD5_HASH_SIZE;
 }
 
-const struct chap_digest_type md5_digest = {
-	CHAP_MD5,		/* code */
+void chap_md5_init_static(void) {
+	md5_digest.code = CHAP_MD5;
 #if PPP_SERVER
-	chap_md5_generate_challenge,
-	chap_md5_verify_response,
+	md5_digest.generate_challenge = chap_md5_generate_challenge;
+	md5_digest.verify_response = chap_md5_verify_response;
 #endif /* PPP_SERVER */
-	chap_md5_make_response,
-	NULL,			/* check_success */
-	NULL,			/* handle_failure */
-};
+	md5_digest.make_response = chap_md5_make_response,
+	md5_digest.check_success = NULL;
+	md5_digest.handle_failure = NULL;
+}
 
 #endif /* PPP_SUPPORT && CHAP_SUPPORT */

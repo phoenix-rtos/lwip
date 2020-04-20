@@ -189,8 +189,10 @@ extern void chap_auth_peer(ppp_pcb *pcb, const char *our_name, int digest_code);
 /* Called by auth. code to start authenticating us to the peer. */
 extern void chap_auth_with_peer(ppp_pcb *pcb, const char *our_name, int digest_code);
 
+void chap_init_static(void);
+
 /* Represents the CHAP protocol to the main pppd code */
-extern const struct protent chap_protent;
+extern struct protent chap_protent;
 
 #ifdef __cplusplus
 }

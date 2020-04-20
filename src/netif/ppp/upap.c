@@ -89,34 +89,11 @@ static void upap_protrej(ppp_pcb *pcb);
 static int upap_printpkt(const u_char *p, int plen, void (*printer) (void *, const char *, ...), void *arg);
 #endif /* PRINTPKT_SUPPORT */
 
-const struct protent pap_protent = {
-    PPP_PAP,
-    upap_init,
-    upap_input,
-    upap_protrej,
-    upap_lowerup,
-    upap_lowerdown,
-    NULL,
-    NULL,
+struct protent pap_protent;
+
 #if PRINTPKT_SUPPORT
-    upap_printpkt,
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_DATAINPUT
-    NULL,
-#endif /* PPP_DATAINPUT */
-#if PRINTPKT_SUPPORT
-    "PAP",
-    NULL,
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_OPTIONS
-    pap_option_list,
-    NULL,
-#endif /* PPP_OPTIONS */
-#if DEMAND_SUPPORT
-    NULL,
-    NULL
-#endif /* DEMAND_SUPPORT */
-};
+static const char* const upap_codenames[3];
+#endif
 
 static void upap_timeout(void *arg);
 #if PPP_SERVER
@@ -130,6 +107,48 @@ static void upap_sauthreq(ppp_pcb *pcb);
 static void upap_sresp(ppp_pcb *pcb, u_char code, u_char id, const char *msg, int msglen);
 #endif /* PPP_SERVER */
 
+void upap_init_static(void) {
+    pap_protent.protocol = PPP_PAP;
+    pap_protent.init = upap_init;
+    pap_protent.input = upap_input;
+    pap_protent.protrej = upap_protrej;
+    pap_protent.lowerup = upap_lowerup;
+    pap_protent.lowerdown = upap_lowerdown;
+    pap_protent.open = NULL;
+    pap_protent.close = NULL;
+    #if PRINTPKT_SUPPORT
+    pap_protent.printpkt = upap_printpkt;
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_DATAINPUT
+    pap_protent.datainput = NULL;
+    #endif /* PPP_DATAINPUT */
+    #if PRINTPKT_SUPPORT
+        "PAP",
+        NULL,
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_OPTIONS
+    pap_protent.name = pap_option_list;
+    pap_protent.data_name = NULL;
+    #endif /* PPP_OPTIONS */
+    #if DEMAND_SUPPORT
+    pap_protent.demand_conf = NULL;
+    pap_protent.active_pkt = NULL;
+    #endif /* DEMAND_SUPPORT */
+
+    #if PRINTPKT_SUPPORT
+    #define ARR_ELEM(ARR, IDX, VAL) do { \
+      (ARR)[IDX] = (VAL); \
+      (IDX)++; \
+    } while (0)
+
+    {
+      int i = 0;
+      ARR_ELEM(upap_codenames, i, "AuthReq");
+      ARR_ELEM(upap_codenames, i, "AuthAck");
+      ARR_ELEM(upap_codenames, i, "AuthNak");
+    }
+    #endif
+}
 
 /*
  * upap_init - Initialize a UPAP unit.
@@ -595,9 +614,6 @@ static void upap_sresp(ppp_pcb *pcb, u_char code, u_char id, const char *msg, in
 /*
  * upap_printpkt - print the contents of a PAP packet.
  */
-static const char* const upap_codenames[] = {
-    "AuthReq", "AuthAck", "AuthNak"
-};
 
 static int upap_printpkt(const u_char *p, int plen, void (*printer) (void *, const char *, ...), void *arg) {
     int code, id, len;

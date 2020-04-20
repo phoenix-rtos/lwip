@@ -121,23 +121,12 @@ static void ipcp_up(fsm *f);		/* We're UP */
 static void ipcp_down(fsm *f);		/* We're DOWN */
 static void ipcp_finished(fsm *f);	/* Don't need lower layer */
 
-static const fsm_callbacks ipcp_callbacks = { /* IPCP callback routines */
-    ipcp_resetci,		/* Reset our Configuration Information */
-    ipcp_cilen,			/* Length of our Configuration Information */
-    ipcp_addci,			/* Add our Configuration Information */
-    ipcp_ackci,			/* ACK our Configuration Information */
-    ipcp_nakci,			/* NAK our Configuration Information */
-    ipcp_rejci,			/* Reject our Configuration Information */
-    ipcp_reqci,			/* Request peer's Configuration Information */
-    ipcp_up,			/* Called when fsm reaches OPENED state */
-    ipcp_down,			/* Called when fsm leaves OPENED state */
-    NULL,			/* Called when we want the lower layer up */
-    ipcp_finished,		/* Called when we want the lower layer down */
-    NULL,			/* Called when Protocol-Reject received */
-    NULL,			/* Retransmission is necessary */
-    NULL,			/* Called to handle protocol-specific codes */
-    "IPCP"			/* String name of protocol */
-};
+static fsm_callbacks ipcp_callbacks;
+struct protent ipcp_protent;
+
+#if PRINTPKT_SUPPORT
+static const char* ipcp_codenames[7];
+#endif
 
 /*
  * Command-line options.
@@ -278,34 +267,68 @@ static int  ip_active_pkt (u_char *, int);
 static void create_resolv (u32_t, u32_t);
 #endif /* UNUSED */
 
-const struct protent ipcp_protent = {
-    PPP_IPCP,
-    ipcp_init,
-    ipcp_input,
-    ipcp_protrej,
-    ipcp_lowerup,
-    ipcp_lowerdown,
-    ipcp_open,
-    ipcp_close,
-#if PRINTPKT_SUPPORT
-    ipcp_printpkt,
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_DATAINPUT
-    NULL,
-#endif /* PPP_DATAINPUT */
-#if PRINTPKT_SUPPORT
-    "IPCP",
-    "IP",
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_OPTIONS
-    ipcp_option_list,
-    ip_check_options,
-#endif /* PPP_OPTIONS */
-#if DEMAND_SUPPORT
-    ip_demand_conf,
-    ip_active_pkt
-#endif /* DEMAND_SUPPORT */
-};
+void ipcp_init_static(void) {
+    ipcp_protent.protocol = PPP_IPCP;
+    ipcp_protent.init = ipcp_init;
+    ipcp_protent.input = ipcp_input;
+    ipcp_protent.protrej = ipcp_protrej;
+    ipcp_protent.lowerup = ipcp_lowerup;
+    ipcp_protent.lowerdown = ipcp_lowerdown;
+    ipcp_protent.open = ipcp_open;
+    ipcp_protent.close = ipcp_close;
+    #if PRINTPKT_SUPPORT
+    ipcp_protent.printpkt = ipcp_printpkt;
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_DATAINPUT
+    ipcp_protent.datainput = NULL;
+    #endif /* PPP_DATAINPUT */
+    #if PRINTPKT_SUPPORT
+        "IPCP",
+        "IP",
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_OPTIONS
+    ipcp_protent.name = ipcp_option_list;
+    ipcp_protent.data_name = ip_check_options;
+    #endif /* PPP_OPTIONS */
+    #if DEMAND_SUPPORT
+    ipcp_protent.demand_conf = ip_demand_conf;
+    ipcp_protent.active_pkt = ip_active_pkt;
+    #endif /* DEMAND_SUPPORT */
+
+    ipcp_callbacks.resetci = ipcp_resetci;
+    ipcp_callbacks.cilen = ipcp_cilen;
+    ipcp_callbacks.addci = ipcp_addci;
+    ipcp_callbacks.ackci = ipcp_ackci;
+    ipcp_callbacks.nakci = ipcp_nakci;
+    ipcp_callbacks.rejci = ipcp_rejci;
+    ipcp_callbacks.reqci = ipcp_reqci;
+    ipcp_callbacks.up = ipcp_up;
+    ipcp_callbacks.down = ipcp_down;
+    ipcp_callbacks.starting = NULL;
+    ipcp_callbacks.finished = ipcp_finished;
+    ipcp_callbacks.protreject = NULL;
+    ipcp_callbacks.retransmit = NULL;
+    ipcp_callbacks.extcode = NULL;
+    ipcp_callbacks.proto_name = "IPCP";
+
+    #if PRINTPKT_SUPPORT
+    #define ARR_ELEM(ARR, IDX, VAL) do { \
+      (ARR)[IDX] = (VAL); \
+      (IDX)++; \
+    } while (0)
+
+    {
+      int i = 0;
+      ARR_ELEM(ccp_codenames, i, "ConfReq");
+      ARR_ELEM(ccp_codenames, i, "ConfAck");
+      ARR_ELEM(ccp_codenames, i, "ConfNak");
+      ARR_ELEM(ccp_codenames, i, "ConfRej");
+      ARR_ELEM(ccp_codenames, i, "TermReq");
+      ARR_ELEM(ccp_codenames, i, "TermAck");
+      ARR_ELEM(ccp_codenames, i, "CodeRej");
+    }
+    #endif
+}
 
 static void ipcp_clear_addrs(ppp_pcb *pcb, u32_t ouraddr, u32_t hisaddr, u8_t replacedefaultroute);
 
@@ -2231,10 +2254,6 @@ create_resolv(peerdns1, peerdns2)
 /*
  * ipcp_printpkt - print the contents of an IPCP packet.
  */
-static const char* const ipcp_codenames[] = {
-    "ConfReq", "ConfAck", "ConfNak", "ConfRej",
-    "TermReq", "TermAck", "CodeRej"
-};
 
 static int ipcp_printpkt(const u_char *p, int plen,
 		void (*printer) (void *, const char *, ...), void *arg) {

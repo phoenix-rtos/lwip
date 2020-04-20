@@ -168,37 +168,7 @@ int link_stats_valid;
  * One entry per supported protocol.
  * The last entry must be NULL.
  */
-const struct protent* const protocols[] = {
-    &lcp_protent,
-#if PAP_SUPPORT
-    &pap_protent,
-#endif /* PAP_SUPPORT */
-#if CHAP_SUPPORT
-    &chap_protent,
-#endif /* CHAP_SUPPORT */
-#if CBCP_SUPPORT
-    &cbcp_protent,
-#endif /* CBCP_SUPPORT */
-#if PPP_IPV4_SUPPORT
-    &ipcp_protent,
-#endif /* PPP_IPV4_SUPPORT */
-#if PPP_IPV6_SUPPORT
-    &ipv6cp_protent,
-#endif /* PPP_IPV6_SUPPORT */
-#if CCP_SUPPORT
-    &ccp_protent,
-#endif /* CCP_SUPPORT */
-#if ECP_SUPPORT
-    &ecp_protent,
-#endif /* ECP_SUPPORT */
-#ifdef AT_CHANGE
-    &atcp_protent,
-#endif /* AT_CHANGE */
-#if EAP_SUPPORT
-    &eap_protent,
-#endif /* EAP_SUPPORT */
-    NULL
-};
+struct protent* protocols[11];
 
 /* Prototypes for procedures local to this file. */
 static void ppp_do_connect(void *arg);
@@ -624,6 +594,52 @@ int ppp_init(void)
 #endif
 
   LWIP_MEMPOOL_INIT(PPP_PCB);
+
+  #define ARR_ELEM(ARR, IDX, VAL) do { \
+    (ARR)[IDX] = (VAL); \
+    (IDX)++; \
+  } while (0)
+
+  int i = 0;
+
+  lcp_init_static();
+  ARR_ELEM(protocols, i, &lcp_protent);
+  #if PAP_SUPPORT
+  upap_init_static();
+  ARR_ELEM(protocols, i, &pap_protent);
+  #endif /* PAP_SUPPORT */
+  #if CHAP_SUPPORT
+  chap_init_static();
+  ARR_ELEM(protocols, i, &chap_protent);
+  #endif /* CHAP_SUPPORT */
+  #if CBCP_SUPPORT
+  ARR_ELEM(protocols, i, &cbcp_protent);
+  #endif /* CBCP_SUPPORT */
+  #if PPP_IPV4_SUPPORT
+  ipcp_init_static();
+  ARR_ELEM(protocols, i, &ipcp_protent);
+  #endif /* PPP_IPV4_SUPPORT */
+  #if PPP_IPV6_SUPPORT
+  ARR_ELEM(protocols, i, &ipv6cp_protent);
+  #endif /* PPP_IPV6_SUPPORT */
+  #if CCP_SUPPORT
+  ccp_init_static();
+  ARR_ELEM(protocols, i, &ccp_protent);
+  #endif /* CCP_SUPPORT */
+  #if ECP_SUPPORT
+  ARR_ELEM(protocols, i, &ecp_protent);
+  #endif /* ECP_SUPPORT */
+  #ifdef AT_CHANGE
+  ARR_ELEM(protocols, i, &atcp_protent);
+  #endif /* AT_CHANGE */
+  #if EAP_SUPPORT
+  ARR_ELEM(protocols, i, &eap_protent);
+  #endif /* EAP_SUPPORT */
+  ARR_ELEM(protocols, i, NULL);
+
+#if PPPOS_SUPPORT
+  pppos_init();
+#endif
 
   /*
    * Initialize magic number generator now so that protocols may

@@ -36,8 +36,10 @@
 #ifndef CHAPMS_INCLUDE
 #define CHAPMS_INCLUDE
 
-extern const struct chap_digest_type chapms_digest;
-extern const struct chap_digest_type chapms2_digest;
+extern struct chap_digest_type chapms_digest;
+extern struct chap_digest_type chapms2_digest;
+
+void chap_ms_init_static(void);
 
 #endif /* CHAPMS_INCLUDE */
 

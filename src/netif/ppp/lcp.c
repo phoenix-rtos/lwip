@@ -212,6 +212,10 @@ static option_t lcp_option_list[] = {
 };
 #endif /* PPP_OPTIONS */
 
+#if PRINTPKT_SUPPORT
+static const char* const lcp_codenames[13];
+#endif
+
 /*
  * Callbacks for fsm code.  (CI = Configuration Information)
  */
@@ -241,23 +245,7 @@ static void LcpSendEchoRequest(fsm *f);
 static void LcpLinkFailure(fsm *f);
 static void LcpEchoCheck(fsm *f);
 
-static const fsm_callbacks lcp_callbacks = {	/* LCP callback routines */
-    lcp_resetci,		/* Reset our Configuration Information */
-    lcp_cilen,			/* Length of our Configuration Information */
-    lcp_addci,			/* Add our Configuration Information */
-    lcp_ackci,			/* ACK our Configuration Information */
-    lcp_nakci,			/* NAK our Configuration Information */
-    lcp_rejci,			/* Reject our Configuration Information */
-    lcp_reqci,			/* Request peer's Configuration Information */
-    lcp_up,			/* Called when fsm reaches OPENED state */
-    lcp_down,			/* Called when fsm leaves OPENED state */
-    lcp_starting,		/* Called when we want the lower layer up */
-    lcp_finished,		/* Called when we want the lower layer down */
-    NULL,			/* Called when Protocol-Reject received */
-    NULL,			/* Retransmission is necessary */
-    lcp_extcode,		/* Called to handle LCP-specific codes */
-    "LCP"			/* String name of protocol */
-};
+static fsm_callbacks lcp_callbacks;
 
 /*
  * Protocol entry points.
@@ -272,34 +260,7 @@ static int lcp_printpkt(const u_char *p, int plen,
 		void (*printer) (void *, const char *, ...), void *arg);
 #endif /* PRINTPKT_SUPPORT */
 
-const struct protent lcp_protent = {
-    PPP_LCP,
-    lcp_init,
-    lcp_input,
-    lcp_protrej,
-    lcp_lowerup,
-    lcp_lowerdown,
-    lcp_open,
-    lcp_close,
-#if PRINTPKT_SUPPORT
-    lcp_printpkt,
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_DATAINPUT
-    NULL,
-#endif /* PPP_DATAINPUT */
-#if PRINTPKT_SUPPORT
-    "LCP",
-    NULL,
-#endif /* PRINTPKT_SUPPORT */
-#if PPP_OPTIONS
-    lcp_option_list,
-    NULL,
-#endif /* PPP_OPTIONS */
-#if DEMAND_SUPPORT
-    NULL,
-    NULL
-#endif /* DEMAND_SUPPORT */
-};
+struct protent lcp_protent;
 
 /*
  * Length of each type of configuration option (in octets)
@@ -356,6 +317,76 @@ printendpoint(opt, printer, arg)
 	printer(arg, "%s", epdisc_to_str(&lcp_wantoptions[0].endpoint));
 }
 #endif /* HAVE_MULTILINK */
+
+void lcp_init_static(void) {
+    lcp_protent.protocol = PPP_LCP;
+    lcp_protent.init = lcp_init;
+    lcp_protent.input = lcp_input;
+    lcp_protent.protrej = lcp_protrej;
+    lcp_protent.lowerup = lcp_lowerup;
+    lcp_protent.lowerdown = lcp_lowerdown;
+    lcp_protent.open = lcp_open;
+    lcp_protent.close = lcp_close;
+    #if PRINTPKT_SUPPORT
+    lcp_protent.printpkt = lcp_printpkt;
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_DATAINPUT
+    lcp_protent.datainput = NULL;
+    #endif /* PPP_DATAINPUT */
+    #if PRINTPKT_SUPPORT
+        "LCP",
+        NULL,
+    #endif /* PRINTPKT_SUPPORT */
+    #if PPP_OPTIONS
+    lcp_protent.name = lcp_option_list;
+    lcp_protent.data_name = NULL;
+    #endif /* PPP_OPTIONS */
+    #if DEMAND_SUPPORT
+    lcp_protent.demand_conf = NULL;
+    lcp_protent.active_pkt = NULL;
+    #endif /* DEMAND_SUPPORT */
+
+    lcp_callbacks.resetci = lcp_resetci;
+    lcp_callbacks.cilen = lcp_cilen;
+    lcp_callbacks.addci = lcp_addci;
+    lcp_callbacks.ackci = lcp_ackci;
+    lcp_callbacks.nakci = lcp_nakci;
+    lcp_callbacks.rejci = lcp_rejci;
+    lcp_callbacks.reqci = lcp_reqci;
+    lcp_callbacks.up = lcp_up;
+    lcp_callbacks.down = lcp_down;
+    lcp_callbacks.starting = lcp_starting;
+    lcp_callbacks.finished = lcp_finished;
+    lcp_callbacks.protreject = NULL;
+    lcp_callbacks.retransmit = NULL;
+    lcp_callbacks.extcode = lcp_extcode;
+    lcp_callbacks.proto_name = "LCP";
+
+    #if PRINTPKT_SUPPORT
+    #define ARR_ELEM(ARR, IDX, VAL) do { \
+      (ARR)[IDX] = (VAL); \
+      (IDX)++; \
+    } while (0)
+
+    {
+      int i = 0;
+      ARR_ELEM(lcp_codenames, i, "ConfReq");
+      ARR_ELEM(lcp_codenames, i, "ConfAck");
+      ARR_ELEM(lcp_codenames, i, "ConfNak");
+      ARR_ELEM(lcp_codenames, i, "ConfRej");
+      ARR_ELEM(lcp_codenames, i, "TermReq");
+      ARR_ELEM(lcp_codenames, i, "TermAck");
+      ARR_ELEM(lcp_codenames, i, "CodeRej");
+      ARR_ELEM(lcp_codenames, i, "ProtRej");
+      ARR_ELEM(lcp_codenames, i, "EchoReq");
+      ARR_ELEM(lcp_codenames, i, "EchoRep");
+      ARR_ELEM(lcp_codenames, i, "DiscReq");
+      ARR_ELEM(lcp_codenames, i, "Ident");
+      ARR_ELEM(lcp_codenames, i, "TimeRem");
+    }
+    #endif
+}
+
 
 /*
  * lcp_init - Initialize LCP.
@@ -2374,12 +2405,6 @@ static void lcp_finished(fsm *f) {
 /*
  * lcp_printpkt - print the contents of an LCP packet.
  */
-static const char* const lcp_codenames[] = {
-    "ConfReq", "ConfAck", "ConfNak", "ConfRej",
-    "TermReq", "TermAck", "CodeRej", "ProtRej",
-    "EchoReq", "EchoRep", "DiscReq", "Ident",
-    "TimeRem"
-};
 
 static int lcp_printpkt(const u_char *p, int plen,
 		void (*printer) (void *, const char *, ...), void *arg) {

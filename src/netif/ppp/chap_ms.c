@@ -150,6 +150,9 @@ extern void set_mppe_enc_types(int, int);
 #define MS_CHAP2_AUTHENTICATEE 0
 #define MS_CHAP2_AUTHENTICATOR 1
 
+struct chap_digest_type chapms_digest;
+struct chap_digest_type chapms2_digest;
+
 static void	ascii2unicode (const char[], int, u_char[]);
 static void	NTPasswordHash (u_char *, int, u_char[MD4_SIGNATURE_SIZE]);
 static void	ChallengeResponse (const u_char *, const u_char *, u_char[24]);
@@ -937,26 +940,25 @@ void set_mppe_enc_types(int policy, int types) {
 #endif /* MPPE_SUPPORT */
 #endif /* UNUSED */
 
-const struct chap_digest_type chapms_digest = {
-	CHAP_MICROSOFT,		/* code */
-#if PPP_SERVER
-	chapms_generate_challenge,
-	chapms_verify_response,
-#endif /* PPP_SERVER */
-	chapms_make_response,
-	NULL,			/* check_success */
-	chapms_handle_failure,
-};
 
-const struct chap_digest_type chapms2_digest = {
-	CHAP_MICROSOFT_V2,	/* code */
+void chap_ms_init_static(void) {
+	chapms_digest.code = CHAP_MICROSOFT;
 #if PPP_SERVER
-	chapms2_generate_challenge,
-	chapms2_verify_response,
+	chapms_digest.generate_challenge = chapms_generate_challenge;
+	chapms_digest.verify_response = chapms_verify_response;
 #endif /* PPP_SERVER */
-	chapms2_make_response,
-	chapms2_check_success,
-	chapms_handle_failure,
-};
+	chapms_digest.make_response = chapms_make_response,
+	chapms_digest.check_success = NULL;
+	chapms_digest.handle_failure = chapms_handle_failure;
+
+	chapms2_digest.code = CHAP_MICROSOFT_V2;
+#if PPP_SERVER
+	chapms2_digest.generate_challenge = chapms2_generate_challenge;
+	chapms2_digest.verify_response = chapms2_verify_response;
+#endif /* PPP_SERVER */
+	chapms2_digest.make_response = chapms2_make_response,
+	chapms2_digest.check_success = chapms2_check_success;
+	chapms2_digest.handle_failure = chapms_handle_failure;
+}
 
 #endif /* PPP_SUPPORT && MSCHAP_SUPPORT */
