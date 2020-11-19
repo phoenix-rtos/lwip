@@ -84,7 +84,7 @@
 
 #if LWIP_6LOWPAN_NUM_CONTEXTS > 0
 /** context memory, containing IPv6 addresses */
-static ip6_addr_t rfc7668_context[LWIP_6LOWPAN_NUM_CONTEXTS];
+static struct lowpan6_context rfc7668_context[LWIP_6LOWPAN_NUM_CONTEXTS];
 #else
 #define rfc7668_context NULL
 #endif
@@ -293,24 +293,30 @@ rfc7668_compress(struct netif *netif, struct pbuf *p)
  *
  * @param idx Context id
  * @param context IPv6 addr for this context
+ * @param context_length context prefix len
  *
  * @return ERR_OK (if everything is fine), ERR_ARG (if the context id is out of range), ERR_VAL (if contexts disabled)
  */
 err_t
-rfc7668_set_context(u8_t idx, const ip6_addr_t *context)
+rfc7688_set_context(u8_t idx, const u32_t *context, u16_t context_length)
 {
 #if LWIP_6LOWPAN_NUM_CONTEXTS > 0
-  /* check if the ID is possible */
   if (idx >= LWIP_6LOWPAN_NUM_CONTEXTS) {
     return ERR_ARG;
   }
-  /* copy IPv6 address to context storage */
-  ip6_addr_set(&rfc7668_context[idx], context);
+
+  rfc7668_context[idx].cid = idx;
+  rfc7668_context[idx].context_length = context_length;
+  rfc7668_context[idx].c = 1;
+  rfc7668_context[idx].valid_lifetime = -1; /* @todo: calculate valid lifetime */
+  memcpy(rfc7668_context[idx].context, context, 16);
+
   return ERR_OK;
 #else
   LWIP_UNUSED_ARG(idx);
   LWIP_UNUSED_ARG(context);
-  return ERR_VAL;
+  LWIP_UNUSED_ARG(context_length);
+  return ERR_ARG;
 #endif
 }
 
