@@ -368,7 +368,7 @@ rfc7668_input(struct pbuf * p, struct netif *netif)
   } else if ((*puc & 0xe0 )== 0x60) {
     LWIP_DEBUGF(LWIP_LOWPAN6_DECOMPRESSION_DEBUG, ("Completed packet, decompress dispatch: 0x%2x \n", *puc));
     /* IPv6 headers are compressed using IPHC. */
-    p = lowpan6_decompress(p, 0, rfc7668_context, &rfc7668_peer_addr, &rfc7668_local_addr);
+    p = lowpan6_decompress(p, 0, rfc7668_context, 0, &rfc7668_peer_addr, &rfc7668_local_addr);
     /* if no pbuf is returned, handle as discarded packet */
     if (p == NULL) {
       MIB2_STATS_NETIF_INC(netif, ifindiscards);
