@@ -422,25 +422,34 @@ lowpan6_compress_headers(struct netif *netif, u8_t *inbuf, size_t inbuf_size, u8
 
   /* Compress destination address */
   if (ip6_addr_ismulticast(ip_2_ip6(&ip6dst))) {
-    /* @todo support stateful multicast address compression */
-
     buffer[1] |= 0x08;
 
-    i = lowpan6_get_address_mode_mc(ip_2_ip6(&ip6dst));
-    buffer[1] |= i & 0x03;
-    if (i == 0) {
-      MEMCPY(buffer + lowpan6_header_len, inptr + 24, 16);
-      lowpan6_header_len += 16;
-    } else if (i == 1) {
+    if ((buffer[1] & 0x04) == 0) {
+      /* Stateless compression */
+      i = lowpan6_get_address_mode_mc(ip_2_ip6(&ip6dst));
+      buffer[1] |= i & 0x03;
+      if (i == 0) {
+        MEMCPY(buffer + lowpan6_header_len, inptr + 24, 16);
+        lowpan6_header_len += 16;
+      } else if (i == 1) {
+        buffer[lowpan6_header_len++] = inptr[25];
+        MEMCPY(buffer + lowpan6_header_len, inptr + 35, 5);
+        lowpan6_header_len += 5;
+      } else if (i == 2) {
+        buffer[lowpan6_header_len++] = inptr[25];
+        MEMCPY(buffer + lowpan6_header_len, inptr + 37, 3);
+        lowpan6_header_len += 3;
+      } else if (i == 3) {
+        buffer[lowpan6_header_len++] = (inptr)[39];
+      }
+    } else {
+      /* Stateful compression, first set flags and scope */
       buffer[lowpan6_header_len++] = inptr[25];
-      MEMCPY(buffer + lowpan6_header_len, inptr + 35, 5);
-      lowpan6_header_len += 5;
-    } else if (i == 2) {
-      buffer[lowpan6_header_len++] = inptr[25];
-      MEMCPY(buffer + lowpan6_header_len, inptr + 37, 3);
-      lowpan6_header_len += 3;
-    } else if (i == 3) {
-      buffer[lowpan6_header_len++] = (inptr)[39];
+      /* Reserved */
+      buffer[lowpan6_header_len++] = inptr[26];
+      /* Group identifier */
+      MEMCPY(buffer + lowpan6_header_len, inptr + 36, 4);
+      lowpan6_header_len += 4;
     }
   } else if (((buffer[1] & 0x04) != 0) ||
               (ip6_addr_islinklocal(ip_2_ip6(&ip6dst)))) {
@@ -880,12 +889,33 @@ lowpan6_decompress_hdr(u8_t *lowpan6_buffer, size_t lowpan6_bufsize,
     LWIP_DEBUGF(LWIP_LOWPAN6_DECOMPRESSION_DEBUG, ("M=1: multicast\n"));
     /* Multicast destination */
     if (lowpan6_buffer[1] & 0x04) {
-      LWIP_DEBUGF(LWIP_DBG_ON,("DAC == 1, context multicast: unsupported!!!\n"));
-      /* @todo support stateful multicast addressing */
-      return ERR_VAL;
-    }
+      /* Multicast stateful compression */
+      LWIP_DEBUGF(LWIP_LOWPAN6_DECOMPRESSION_DEBUG,("DAC == 1, context multicast\n"));
 
-    if ((lowpan6_buffer[1] & 0x03) == 0x00) {
+      if (lowpan6_buffer[1] & 0x80) {
+        i = lowpan6_buffer[2] & 0x0f;
+      } else {
+        i = 0;
+      }
+
+      if (lowpan6_contexts[i].context_length > 64)
+        return ERR_VAL;
+
+      /* First 4 bytes: 11111111|flgs|scop|reserved|plen */
+      ip6hdr->dest.addr[0] = lwip_htonl(0xFF000000 | lowpan6_buffer[lowpan6_offset] << 16 |
+                                        lowpan6_buffer[lowpan6_offset + 1] << 8 | lowpan6_contexts[i].context_length);
+      lowpan6_offset += 2;
+      /* 64 bits network prefix */
+      lowpan6_context_set(&lowpan6_contexts[i], ip6hdr->dest.addr + 1);
+      /* 32 bits group id */
+      memcpy(ip6hdr->dest.addr + 3, lowpan6_buffer + lowpan6_offset, 4);
+      lowpan6_offset += 4;
+      if ((lowpan6_buffer[1] & 0x03) != 0x00) {
+        LWIP_DEBUGF(LWIP_DBG_ON, ("DAM != 00, for multicast stateful compression only unicast-prefix based compression is supported\n"));
+        return ERR_VAL;
+      }
+
+    } else if ((lowpan6_buffer[1] & 0x03) == 0x00) {
       /* DAM = 00, copy full address (128bits) */
       LWIP_DEBUGF(LWIP_LOWPAN6_DECOMPRESSION_DEBUG, ("DAM == 00, no dst compression, fetching 128bits inline\n"));
       MEMCPY(&ip6hdr->dest.addr[0], lowpan6_buffer + lowpan6_offset, 16);
