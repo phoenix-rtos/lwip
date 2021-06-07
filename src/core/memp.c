@@ -75,7 +75,7 @@
 #include "lwip/ip6_frag.h"
 #include "lwip/mld6.h"
 
-#ifdef LWIP_NETPACKET
+#if LWIP_NETPACKET
 #include "netpacket.h"
 #endif
 
