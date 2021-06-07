@@ -241,9 +241,11 @@ struct linger {
 #else /* LWIP_IPV6 */
 #define AF_INET6        AF_UNSPEC
 #endif /* LWIP_IPV6 */
+#define AF_PACKET       17
 #define PF_INET         AF_INET
 #define PF_INET6        AF_INET6
 #define PF_UNSPEC       AF_UNSPEC
+#define PF_PACKET       AF_PACKET
 
 #define IPPROTO_IP      0
 #define IPPROTO_ICMP    1

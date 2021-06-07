@@ -88,7 +88,7 @@ struct api_msg {
     struct netbuf *b;
     /** used for lwip_netconn_do_newconn */
     struct {
-      u8_t proto;
+      u16_t proto;
     } n;
     /** used for lwip_netconn_do_bind and lwip_netconn_do_connect */
     struct {
