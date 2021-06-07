@@ -146,7 +146,7 @@ netconn_apimsg(tcpip_callback_fn fn, struct api_msg *apimsg)
  *         NULL on memory error
  */
 struct netconn *
-netconn_new_with_proto_and_callback(enum netconn_type t, u8_t proto, netconn_callback callback)
+netconn_new_with_proto_and_callback(enum netconn_type t, u16_t proto, netconn_callback callback)
 {
   struct netconn *conn;
   API_MSG_VAR_DECLARE(msg);
@@ -632,9 +632,9 @@ netconn_recv_data(struct netconn *conn, void **new_buf, u8_t apiflags)
 #endif
 
 #if LWIP_TCP
-#if (LWIP_UDP || LWIP_RAW)
+#if (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET)
   if (NETCONNTYPE_GROUP(conn->type) == NETCONN_TCP)
-#endif /* (LWIP_UDP || LWIP_RAW) */
+#endif /* (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET) */
   {
     err_t err;
     /* Check if this is an error message or a pbuf */
@@ -649,15 +649,15 @@ netconn_recv_data(struct netconn *conn, void **new_buf, u8_t apiflags)
     len = ((struct pbuf *)buf)->tot_len;
   }
 #endif /* LWIP_TCP */
-#if LWIP_TCP && (LWIP_UDP || LWIP_RAW)
+#if LWIP_TCP && (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET)
   else
-#endif /* LWIP_TCP && (LWIP_UDP || LWIP_RAW) */
-#if (LWIP_UDP || LWIP_RAW)
+#endif /* LWIP_TCP && (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET) */
+#if (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET)
   {
     LWIP_ASSERT("buf != NULL", buf != NULL);
     len = netbuf_len((struct netbuf *)buf);
   }
-#endif /* (LWIP_UDP || LWIP_RAW) */
+#endif /* (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET) */
 
 #if LWIP_SO_RCVBUF
   SYS_ARCH_DEC(conn->recv_avail, len);
@@ -869,9 +869,9 @@ netconn_recv(struct netconn *conn, struct netbuf **new_buf)
   LWIP_ERROR("netconn_recv: invalid conn",    (conn != NULL),    return ERR_ARG;);
 
 #if LWIP_TCP
-#if (LWIP_UDP || LWIP_RAW)
+#if (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET)
   if (NETCONNTYPE_GROUP(conn->type) == NETCONN_TCP)
-#endif /* (LWIP_UDP || LWIP_RAW) */
+#endif /* (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET) */
   {
     struct pbuf *p = NULL;
     /* This is not a listening netconn, since recvmbox is set */
@@ -897,13 +897,13 @@ netconn_recv(struct netconn *conn, struct netbuf **new_buf)
     return ERR_OK;
   }
 #endif /* LWIP_TCP */
-#if LWIP_TCP && (LWIP_UDP || LWIP_RAW)
+#if LWIP_TCP && (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET)
   else
-#endif /* LWIP_TCP && (LWIP_UDP || LWIP_RAW) */
+#endif /* LWIP_TCP && (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET) */
   {
-#if (LWIP_UDP || LWIP_RAW)
+#if (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET)
     return netconn_recv_data(conn, (void **)new_buf, 0);
-#endif /* (LWIP_UDP || LWIP_RAW) */
+#endif /* (LWIP_UDP || LWIP_RAW || LWIP_NETPACKET) */
   }
 }
 

@@ -56,6 +56,10 @@
 
 #include <string.h>
 
+#ifdef LWIP_HOOK_FILENAME
+#include LWIP_HOOK_FILENAME
+#endif
+
 /* netconns are polled once per second (e.g. continue write on memory error) */
 #define NETCONN_TCP_POLL_INTERVAL 2
 
@@ -660,6 +664,11 @@ pcb_new(struct api_msg *msg)
       }
       break;
 #endif /* LWIP_TCP */
+#if LWIP_NETPACKET
+    case NETCONN_NETPACKET_RAW:
+      msg->conn->pcb.netpacket = LWIP_HOOK_NETPACKET_NEW(msg->conn, msg->msg.n.proto);
+      break;
+#endif /* LWIP_NETPACKET */
     default:
       /* Unsupported netconn type, e.g. protocol disabled */
       msg->err = ERR_VAL;
@@ -740,6 +749,11 @@ netconn_alloc(enum netconn_type t, netconn_callback callback)
       size = DEFAULT_TCP_RECVMBOX_SIZE;
       break;
 #endif /* LWIP_TCP */
+#if LWIP_NETPACKET
+    case NETCONN_NETPACKET_RAW:
+      size = DEFAULT_RAW_RECVMBOX_SIZE;
+      break;
+#endif /* LWIP_NETPACKET */
     default:
       LWIP_ASSERT("netconn_alloc: undefined netconn_type", 0);
       goto free_and_return;
@@ -1191,6 +1205,11 @@ lwip_netconn_do_delconn(void *m)
              the application thread, so we can return at this point! */
           return;
 #endif /* LWIP_TCP */
+#if LWIP_NETPACKET
+        case NETCONN_NETPACKET_RAW:
+          LWIP_HOOK_NETPACKET_REMOVE(msg->conn->pcb.netpacket);
+          break;
+#endif /* LWIP_NETPACKET */
         default:
           break;
       }
@@ -1282,6 +1301,11 @@ lwip_netconn_do_bind_if(void *m)
         tcp_bind_netif(msg->conn->pcb.tcp, netif);
         break;
 #endif /* LWIP_TCP */
+#if LWIP_NETPACKET
+      case NETCONN_NETPACKET_RAW:
+        LWIP_HOOK_NETPACKET_BIND_IF(msg->conn->pcb.netpacket, netif);
+        break;
+#endif /* LWIP_NETPACKET */
       default:
         err = ERR_VAL;
         break;
@@ -1569,6 +1593,16 @@ lwip_netconn_do_send(void *m)
 #endif /* LWIP_CHECKSUM_ON_COPY */
           break;
 #endif /* LWIP_UDP */
+#if LWIP_NETPACKET
+        case NETCONN_NETPACKET_RAW:
+          if (msg->msg.b->netpacket_hwaddr != NULL && msg->msg.b->netpacket_hwaddr_len != 0) {
+            err = LWIP_HOOK_NETPACKET_SENDTO(msg->conn->pcb.netpacket, msg->msg.b->p,
+                                             msg->msg.b->netpacket_hwaddr, msg->msg.b->netpacket_hwaddr_len);
+          } else {
+            err = LWIP_HOOK_NETPACKET_SEND(msg->conn->pcb.netpacket, msg->msg.b->p);
+          }
+          break;
+#endif /* LWIP_NETPACKET */
         default:
           err = ERR_CONN;
           break;
@@ -1916,6 +1950,12 @@ lwip_netconn_do_getaddr(void *m)
         }
         break;
 #endif /* LWIP_TCP */
+#if LWIP_NETPACKET
+      case NETCONN_NETPACKET_RAW:
+        /* netpacket is bound to interface, not to address */
+        msg->err = ERR_CONN;
+        break;
+#endif /* LWIP_NETPACKET */
       default:
         LWIP_ASSERT("invalid netconn_type", 0);
         break;
