@@ -140,6 +140,12 @@ enum netconn_type {
   /** Raw connection IPv6 (dual-stack by default, unless you call @ref netconn_set_ipv6only) */
   , NETCONN_RAW_IPV6    = NETCONN_RAW | NETCONN_TYPE_IPV6 /* 0x48 */
 #endif /* LWIP_IPV6 */
+
+#if LWIP_NETPACKET
+  /** NETCONN_NETPACKET_RAW Group */
+  , NETCONN_NETPACKET_RAW = 0x50,
+  NETCONN_NETPACKET_DGRAM = 0x51
+#endif /* LWIP_NETPACKET */
 };
 
 /** Current state of the netconn. Non-TCP netconns are always
@@ -208,6 +214,7 @@ struct ip_pcb;
 struct tcp_pcb;
 struct udp_pcb;
 struct raw_pcb;
+struct netpacket_pcb;
 struct netconn;
 struct api_msg;
 
@@ -226,6 +233,9 @@ struct netconn {
     struct tcp_pcb *tcp;
     struct udp_pcb *udp;
     struct raw_pcb *raw;
+#if LWIP_NETPACKET
+    struct netpacket_pcb *netpacket;
+#endif /* LWIP_NETPACKET */
   } pcb;
   /** the last asynchronous unreported error this netconn had */
   err_t pending_err;
@@ -309,7 +319,7 @@ struct netvector {
  * @param t @ref netconn_type */
 #define netconn_new(t)                  netconn_new_with_proto_and_callback(t, 0, NULL)
 #define netconn_new_with_callback(t, c) netconn_new_with_proto_and_callback(t, 0, c)
-struct netconn *netconn_new_with_proto_and_callback(enum netconn_type t, u8_t proto,
+struct netconn *netconn_new_with_proto_and_callback(enum netconn_type t, u16_t proto,
                                              netconn_callback callback);
 err_t   netconn_prepare_delete(struct netconn *conn);
 err_t   netconn_delete(struct netconn *conn);

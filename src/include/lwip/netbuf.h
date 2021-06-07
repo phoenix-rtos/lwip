@@ -46,6 +46,7 @@
 #include "lwip/pbuf.h"
 #include "lwip/ip_addr.h"
 #include "lwip/ip6_addr.h"
+#include "lwip/prot/ethernet.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,6 +69,10 @@ struct netbuf {
   ip_addr_t toaddr;
 #endif /* LWIP_NETBUF_RECVINFO */
 #endif /* LWIP_NETBUF_RECVINFO || LWIP_CHECKSUM_ON_COPY */
+#if LWIP_NETPACKET
+  u8_t netpacket_hwaddr[ETH_HWADDR_LEN];
+  u8_t netpacket_hwaddr_len;
+#endif /* LWIP_NETPACKET */
 };
 
 /* Network buffer functions: */

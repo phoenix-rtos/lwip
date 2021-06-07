@@ -734,6 +734,18 @@ lwip_bind(int s, const struct sockaddr *name, socklen_t namelen)
     return -1;
   }
 
+#if LWIP_NETPACKET
+  if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_NETPACKET_RAW) {
+    const struct sockaddr_ll *ll = (const struct sockaddr_ll *) name;
+    if (name == NULL || namelen != sizeof(struct sockaddr_ll) || ll->sll_family != AF_PACKET) {
+      err = -EINVAL;
+    } else {
+      err = netconn_bind_if(sock->conn, ll->sll_ifindex);
+    }
+    goto done;
+  }
+#endif /* LWIP_NETPACKET */
+
   /* check size, family and alignment of 'name' */
   LWIP_ERROR("lwip_bind: invalid address", (IS_SOCK_ADDR_LEN_VALID(namelen) &&
              IS_SOCK_ADDR_TYPE_VALID(name) && IS_SOCK_ADDR_ALIGNED(name)),
@@ -755,6 +767,9 @@ lwip_bind(int s, const struct sockaddr *name, socklen_t namelen)
 
   err = netconn_bind(sock->conn, &local_addr, local_port);
 
+#if LWIP_NETPACKET
+done:
+#endif /* LWIP_NETPACKET */
   if (err != ERR_OK) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_bind(%d) failed, err=%d\n", s, err));
     sock_set_errno(sock, err_to_errno(err));
@@ -1195,6 +1210,41 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
   return ERR_OK;
 }
 
+#if LWIP_NETPACKET
+static ssize_t
+lwip_recvfrom_netpacket(struct lwip_sock *sock, void *mem, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen)
+{
+  /* TODO: add MSG_DONTWAIT support */
+  struct netbuf *buf = NULL;
+  int err = netconn_recv(sock->conn, (struct netbuf **)&buf);
+  if (err != ERR_OK) {
+    sock_set_errno(sock, err_to_errno(err));
+    return -1;
+  }
+
+  if (from != NULL && fromlen != NULL && *fromlen >= sizeof(struct sockaddr_ll)) {
+    *fromlen = sizeof(struct sockaddr_ll);
+
+    /* Retrieve source MAC address */
+    struct sockaddr_ll *ll = (struct sockaddr_ll *)from;
+    MEMCPY(ll->sll_addr, buf->netpacket_hwaddr, buf->netpacket_hwaddr_len);
+    ll->sll_halen = buf->netpacket_hwaddr_len;
+  }
+
+  /* Retrieve data from pbufs */
+  int offset = 0;
+  for (struct pbuf *p = (struct pbuf *)buf->p; p != NULL && offset < len; p = p->next) {
+    int to_copy = (offset + p->len <= len) ? p->len : (len - offset);
+    MEMCPY(mem + offset, p->payload, to_copy);
+    offset += to_copy;
+  }
+
+  netbuf_delete(buf);
+  sock_set_errno(sock, 0);
+  return offset;
+}
+#endif /* LWIP_NETPACKET */
+
 ssize_t
 lwip_recvfrom(int s, void *mem, size_t len, int flags,
               struct sockaddr *from, socklen_t *fromlen)
@@ -1207,6 +1257,13 @@ lwip_recvfrom(int s, void *mem, size_t len, int flags,
   if (!sock) {
     return -1;
   }
+#if LWIP_NETPACKET
+  if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_NETPACKET_RAW) {
+    ret = lwip_recvfrom_netpacket(sock, mem, len, flags, from, fromlen);
+    done_socket(sock);
+    return ret;
+  }
+#endif /* LWIP_NETPACKET */
 #if LWIP_TCP
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_TCP) {
     ret = lwip_recv_tcp(sock, mem, len, flags);
@@ -1615,17 +1672,53 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
     return -1;
   }
   short_size = (u16_t)size;
-  LWIP_ERROR("lwip_sendto: invalid address", (((to == NULL) && (tolen == 0)) ||
-             (IS_SOCK_ADDR_LEN_VALID(tolen) &&
-              ((to != NULL) && (IS_SOCK_ADDR_TYPE_VALID(to) && IS_SOCK_ADDR_ALIGNED(to))))),
-             sock_set_errno(sock, err_to_errno(ERR_ARG)); done_socket(sock); return -1;);
-  LWIP_UNUSED_ARG(tolen);
+#if LWIP_NETPACKET
+  if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_NETPACKET_RAW) {
+    const struct sockaddr_ll *ll = (const struct sockaddr_ll *)to;
+    struct netif *netif;
+
+    if (ll == NULL || tolen != sizeof(struct sockaddr_ll) || ll->sll_family != AF_PACKET) {
+      sock_set_errno(sock, err_to_errno(ERR_ARG));
+      done_socket(sock);
+      return -1;
+    }
+    netif = netif_get_by_index(ll->sll_ifindex);
+    if (netif != sock->conn->pcb.netpacket->netif) {
+      sock_set_errno(sock, err_to_errno(ERR_ARG));
+      done_socket(sock);
+      return -1;
+    }
+    if (sock->conn->pcb.netpacket->protocol != ntohs(ll->sll_protocol)) {
+      sock_set_errno(sock, err_to_errno(ERR_ARG));
+      done_socket(sock);
+      return -1;
+    }
+  } else {
+#endif /* LWIP_NETPACKET */
+    LWIP_ERROR("lwip_sendto: invalid address", (((to == NULL) && (tolen == 0)) ||
+               (IS_SOCK_ADDR_LEN_VALID(tolen) &&
+                ((to != NULL) && (IS_SOCK_ADDR_TYPE_VALID(to) && IS_SOCK_ADDR_ALIGNED(to))))),
+               sock_set_errno(sock, err_to_errno(ERR_ARG)); done_socket(sock); return -1;);
+    LWIP_UNUSED_ARG(tolen);
+#if LWIP_NETPACKET
+  }
+#endif /* LWIP_NETPACKET */
 
   /* initialize a buffer */
   buf.p = buf.ptr = NULL;
 #if LWIP_CHECKSUM_ON_COPY
   buf.flags = 0;
 #endif /* LWIP_CHECKSUM_ON_COPY */
+#if LWIP_NETPACKET
+  if (to) {
+    if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_NETPACKET_RAW) {
+      const struct sockaddr_ll *ll = (const struct sockaddr_ll *)to;
+      MEMCPY(buf.netpacket_hwaddr, ll->sll_addr, ll->sll_halen);
+      buf.netpacket_hwaddr_len = ll->sll_halen;
+      to = NULL;
+    }
+  }
+#endif /* LWIP_NETPACKET */
   if (to) {
     SOCKADDR_TO_IPADDR_PORT(to, &buf.addr, remote_port);
   } else {
@@ -1687,13 +1780,38 @@ lwip_socket(int domain, int type, int protocol)
   struct netconn *conn;
   int i;
 
+#if LWIP_NETPACKET
+  if (domain == AF_PACKET) {
+    /* create a netconn */
+    switch (type) {
+      case SOCK_RAW:
+        /* netpacket keeps protocol internally in host byte order */
+        conn = netconn_new_with_proto_and_callback(NETCONN_NETPACKET_RAW,
+                                                   (u16_t)ntohs(protocol), DEFAULT_SOCKET_EVENTCB);
+        LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_socket(AF_PACKET, SOCK_RAW, %d) = ", protocol));
+        break;
+      case SOCK_DGRAM:
+        /* netpacket keeps protocol internally in host byte order */
+        conn = netconn_new_with_proto_and_callback(NETCONN_NETPACKET_DGRAM,
+                                                   (u16_t)ntohs(protocol), DEFAULT_SOCKET_EVENTCB);
+        LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_socket(AF_PACKET, SOCK_DGRAM, %d) = ", protocol));
+        break;
+      default:
+        LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_socket(AF_PACKET, %d/UNKNOWN, %d) = -1\n", type, protocol));
+        set_errno(EINVAL);
+        return -1;
+    }
+    goto done;
+  }
+#endif /* LWIP_NETPACKET */
+
   LWIP_UNUSED_ARG(domain); /* @todo: check this */
 
   /* create a netconn */
   switch (type) {
     case SOCK_RAW:
       conn = netconn_new_with_proto_and_callback(DOMAIN_TO_NETCONN_TYPE(domain, NETCONN_RAW),
-             (u8_t)protocol, DEFAULT_SOCKET_EVENTCB);
+             (u16_t)protocol, DEFAULT_SOCKET_EVENTCB);
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_socket(%s, SOCK_RAW, %d) = ",
                                   domain == PF_INET ? "PF_INET" : "UNKNOWN", protocol));
       break;
@@ -1722,6 +1840,9 @@ lwip_socket(int domain, int type, int protocol)
       return -1;
   }
 
+#if LWIP_NETPACKET
+done:
+#endif /* LWIP_NETPACKET */
   if (!conn) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("-1 / ENOBUFS (could not create netconn)\n"));
     set_errno(ENOBUFS);
@@ -3449,6 +3570,11 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
               raw_bind_netif(sock->conn->pcb.raw, n);
               break;
 #endif
+#if LWIP_NETPACKET
+            case NETCONN_NETPACKET_RAW:
+              /* TODO */
+              break;
+#endif /* LWIP_NETPACKET */
             default:
               LWIP_ASSERT("Unhandled netconn type in SO_BINDTODEVICE", 0);
               break;

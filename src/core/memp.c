@@ -75,6 +75,10 @@
 #include "lwip/ip6_frag.h"
 #include "lwip/mld6.h"
 
+#ifdef LWIP_NETPACKET
+#include "netpacket.h"
+#endif
+
 #define LWIP_MEMPOOL(name,num,size,desc) LWIP_MEMPOOL_DECLARE(name,num,size,desc)
 #include "lwip/priv/memp_std.h"
 

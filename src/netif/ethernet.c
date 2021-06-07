@@ -110,6 +110,12 @@ ethernet_input(struct pbuf *p, struct netif *netif)
                (unsigned char)ethhdr->src.addr[3],  (unsigned char)ethhdr->src.addr[4],  (unsigned char)ethhdr->src.addr[5],
                lwip_htons(ethhdr->type)));
 
+#if LWIP_NETPACKET
+  /* check netpacket stack first */
+  if (LWIP_HOOK_NETPACKET_INPUT(p, netif) == 0)
+    goto free_and_return;
+#endif /* LWIP_NETPACKET */
+
   type = ethhdr->type;
 #if ETHARP_SUPPORT_VLAN
   if (type == PP_HTONS(ETHTYPE_VLAN)) {
@@ -309,6 +315,9 @@ ethernet_output(struct netif * netif, struct pbuf * p,
               ("ethernet_output: sending packet %p\n", (void *)p));
 
   /* send the packet */
+#if LWIP_NETPACKET
+  LWIP_HOOK_NETPACKET_LINKOUTPUT(netif, p);
+#endif /* LWIP_NETPACKET */
   return netif->linkoutput(netif, p);
 
 pbuf_header_failed:

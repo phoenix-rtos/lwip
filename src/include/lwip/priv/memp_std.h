@@ -42,6 +42,10 @@
 LWIP_MEMPOOL(RAW_PCB,        MEMP_NUM_RAW_PCB,         sizeof(struct raw_pcb),        "RAW_PCB")
 #endif /* LWIP_RAW */
 
+#if LWIP_NETPACKET
+LWIP_MEMPOOL(NETPACKET_PCB,  MEMP_NUM_NETPACKET_PCB,   sizeof(struct netpacket_pcb),  "NETPACKET_PCB")
+#endif /* LWIP_NETPACKET */
+
 #if LWIP_UDP
 LWIP_MEMPOOL(UDP_PCB,        MEMP_NUM_UDP_PCB,         sizeof(struct udp_pcb),        "UDP_PCB")
 #endif /* LWIP_UDP */
