@@ -463,6 +463,14 @@
 #endif
 
 /**
+ * MEMP_NUM_NETPACKET_PCB: the number of netpacket protocol control blocks.
+ * (requires the LWIP_NETPACKET option)
+ */
+#if !defined MEMP_NUM_NETPACKET_PCB || defined __DOXYGEN__
+#define MEMP_NUM_NETPACKET_PCB          4
+#endif
+
+/**
  * MEMP_NUM_REASSDATA: the number of IP packets simultaneously queued for
  * reassembly (whole packets, not fragments!)
  */
@@ -896,6 +904,13 @@
  */
 #if !defined RAW_TTL || defined __DOXYGEN__
 #define RAW_TTL                         IP_DEFAULT_TTL
+#endif
+
+/**
+ * LWIP_NETPACKET==1: Enable packet sockets.
+ */
+#if !defined LWIP_NETPACKET || defined __DOXYGEN__
+#define LWIP_NETPACKET                  0
 #endif
 /**
  * @}
