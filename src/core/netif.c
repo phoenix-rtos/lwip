@@ -730,6 +730,61 @@ netif_set_addr(struct netif *netif, const ip4_addr_t *ipaddr, const ip4_addr_t *
 }
 #endif /* LWIP_IPV4*/
 
+#if LWIP_DHCP_GET_MOBILE_AGENT
+static int
+netif_do_set_mobile_agent(struct netif *netif, const ip4_addr_t *ma, ip_addr_t *old_ma)
+{
+  /* address is actually being changed? */
+  if (ip4_addr_cmp(ma, netif_ip4_mobile_agent(netif)) == 0) {
+#if LWIP_NETIF_EXT_STATUS_CALLBACK
+    LWIP_ASSERT("invalid pointer", old_ma != NULL);
+    ip_addr_copy(*old_ma, *netif_ip_mobile_agent4(netif));
+#else
+    LWIP_UNUSED_ARG(old_ma);
+#endif
+    /* set new mobile agent to netif */
+    ip4_addr_set(ip_2_ip4(&netif->mobile_agent), ma);
+    IP_SET_TYPE_VAL(netif->mobile_agent, IPADDR_TYPE_V4);
+    LWIP_DEBUGF(NETIF_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("netif: mobile agent of interface %c%c set to %"U16_F".%"U16_F".%"U16_F".%"U16_F"\n",
+                netif->name[0], netif->name[1],
+                ip4_addr1_16(netif_ip4_mobile_agent(netif)),
+                ip4_addr2_16(netif_ip4_mobile_agent(netif)),
+                ip4_addr3_16(netif_ip4_mobile_agent(netif)),
+                ip4_addr4_16(netif_ip4_mobile_agent(netif))));
+    return 1; /* mobile agent changed */
+  }
+  return 0; /* mobile agent unchanged */
+}
+
+/**
+ * @ingroup netif_ip4
+ * Change the mobile agent of a network interface
+ *
+ * @param netif the network interface to change
+ * @param addr the new mobile agent
+ */
+void
+netif_set_mobile_agent(struct netif *netif, const ip4_addr_t *ma)
+{
+#if LWIP_NETIF_EXT_STATUS_CALLBACK
+  ip_addr_t old_ma_val;
+  ip_addr_t *old_ma = &old_ma_val;
+#else
+  ip_addr_t *old_ma = NULL;
+#endif
+  LWIP_ASSERT_CORE_LOCKED();
+
+  LWIP_ERROR("netif_set_mobile_agent: invalid netif", netif != NULL, return);
+
+  /* Don't propagate NULL pointer (IPv4 ANY) to subsequent functions */
+  if (ma == NULL) {
+    ma = IP4_ADDR_ANY4;
+  }
+
+  netif_do_set_mobile_agent(netif, ma, old_ma);
+}
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
+
 /**
  * @ingroup netif
  * Remove a network interface from the list of lwIP netifs.

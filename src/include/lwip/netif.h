@@ -268,6 +268,9 @@ struct netif {
   ip_addr_t ip_addr;
   ip_addr_t netmask;
   ip_addr_t gw;
+#if LWIP_DHCP_GET_MOBILE_AGENT
+  ip_addr_t mobile_agent;
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 #endif /* LWIP_IPV4 */
 #if LWIP_IPV6
   /** Array of IPv6 addresses for this netif. */
@@ -422,6 +425,9 @@ struct netif *netif_add(struct netif *netif,
                             void *state, netif_init_fn init, netif_input_fn input);
 void netif_set_addr(struct netif *netif, const ip4_addr_t *ipaddr, const ip4_addr_t *netmask,
                     const ip4_addr_t *gw);
+#if LWIP_DHCP_GET_MOBILE_AGENT
+void netif_set_mobile_agent(struct netif *netif, const ip4_addr_t *ma);
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 #else /* LWIP_IPV4 */
 struct netif *netif_add(struct netif *netif, void *state, netif_init_fn init, netif_input_fn input);
 #endif /* LWIP_IPV4 */
@@ -440,17 +446,25 @@ void netif_set_ipaddr(struct netif *netif, const ip4_addr_t *ipaddr);
 void netif_set_netmask(struct netif *netif, const ip4_addr_t *netmask);
 void netif_set_gw(struct netif *netif, const ip4_addr_t *gw);
 /** @ingroup netif_ip4 */
-#define netif_ip4_addr(netif)    ((const ip4_addr_t*)ip_2_ip4(&((netif)->ip_addr)))
+#define netif_ip4_addr(netif)         ((const ip4_addr_t*)ip_2_ip4(&((netif)->ip_addr)))
 /** @ingroup netif_ip4 */
-#define netif_ip4_netmask(netif) ((const ip4_addr_t*)ip_2_ip4(&((netif)->netmask)))
+#define netif_ip4_netmask(netif)      ((const ip4_addr_t*)ip_2_ip4(&((netif)->netmask)))
 /** @ingroup netif_ip4 */
-#define netif_ip4_gw(netif)      ((const ip4_addr_t*)ip_2_ip4(&((netif)->gw)))
+#define netif_ip4_gw(netif)           ((const ip4_addr_t*)ip_2_ip4(&((netif)->gw)))
+#if LWIP_DHCP_GET_MOBILE_AGENT
 /** @ingroup netif_ip4 */
-#define netif_ip_addr4(netif)    ((const ip_addr_t*)&((netif)->ip_addr))
+#define netif_ip4_mobile_agent(netif) ((const ip4_addr_t*)ip_2_ip4(&((netif)->mobile_agent)))
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 /** @ingroup netif_ip4 */
-#define netif_ip_netmask4(netif) ((const ip_addr_t*)&((netif)->netmask))
+#define netif_ip_addr4(netif)         ((const ip_addr_t*)&((netif)->ip_addr))
 /** @ingroup netif_ip4 */
-#define netif_ip_gw4(netif)      ((const ip_addr_t*)&((netif)->gw))
+#define netif_ip_netmask4(netif)      ((const ip_addr_t*)&((netif)->netmask))
+/** @ingroup netif_ip4 */
+#define netif_ip_gw4(netif)           ((const ip_addr_t*)&((netif)->gw))
+#if LWIP_DHCP_GET_MOBILE_AGENT
+/** @ingroup netif_ip4 */
+#define netif_ip_mobile_agent4(netif) ((const ip_addr_t*)&((netif)->mobile_agent))
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 #endif /* LWIP_IPV4 */
 
 #define netif_set_flags(netif, set_flags)     do { (netif)->flags = (u8_t)((netif)->flags |  (set_flags)); } while(0)
