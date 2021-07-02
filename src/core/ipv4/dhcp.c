@@ -149,6 +149,9 @@ enum dhcp_option_idx {
   DHCP_OPTION_IDX_NTP_SERVER,
   DHCP_OPTION_IDX_NTP_SERVER_LAST = DHCP_OPTION_IDX_NTP_SERVER + LWIP_DHCP_MAX_NTP_SERVERS - 1,
 #endif /* LWIP_DHCP_GET_NTP_SRV */
+#if LWIP_DHCP_GET_MOBILE_AGENT
+  DHCP_OPTION_IDX_MOBILE_AGENT,
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
   DHCP_OPTION_IDX_MAX
 };
 
@@ -170,6 +173,9 @@ static u8_t dhcp_discover_request_options[] = {
 #if LWIP_DHCP_GET_NTP_SRV
   , DHCP_OPTION_NTP
 #endif /* LWIP_DHCP_GET_NTP_SRV */
+#if LWIP_DHCP_GET_MOBILE_AGENT
+  , DHCP_OPTION_MOBILE_AGENT
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 };
 
 #ifdef DHCP_GLOBAL_XID
@@ -613,6 +619,9 @@ dhcp_handle_ack(struct netif *netif, struct dhcp_msg *msg_in)
 #if LWIP_DHCP_BOOTP_FILE
   ip4_addr_set_zero(&dhcp->offered_si_addr);
 #endif /* LWIP_DHCP_BOOTP_FILE */
+#if LWIP_DHCP_GET_MOBILE_AGENT
+  ip_addr_set_zero(&dhcp->offered_mobile_agent);
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 
   /* lease time given? */
   if (dhcp_option_given(dhcp, DHCP_OPTION_IDX_LEASE_TIME)) {
@@ -676,6 +685,13 @@ dhcp_handle_ack(struct netif *netif, struct dhcp_msg *msg_in)
     dns_setserver(n, &dns_addr);
   }
 #endif /* LWIP_DHCP_PROVIDE_DNS_SERVERS */
+
+#if LWIP_DHCP_GET_MOBILE_AGENT
+  /* mobile agent IP */
+  if (dhcp_option_given(dhcp, DHCP_OPTION_IDX_MOBILE_AGENT)) {
+    ip4_addr_set_u32(&dhcp->offered_mobile_agent, lwip_htonl(dhcp_get_option_value(dhcp, DHCP_OPTION_IDX_MOBILE_AGENT)));
+  }
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 }
 
 /**
@@ -1138,6 +1154,10 @@ dhcp_bind(struct netif *netif)
 
   netif_set_addr(netif, &dhcp->offered_ip_addr, &sn_mask, &gw_addr);
   /* interface is used by routing now that an address is set */
+
+#if LWIP_DHCP_GET_MOBILE_AGENT
+  netif_set_mobile_agent(netif, &dhcp->offered_mobile_agent);
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 }
 
 /**
@@ -1611,6 +1631,16 @@ again:
         decode_idx = DHCP_OPTION_IDX_NTP_SERVER;
         break;
 #endif /* LWIP_DHCP_GET_NTP_SRV*/
+#if LWIP_DHCP_GET_MOBILE_AGENT
+      case (DHCP_OPTION_MOBILE_AGENT):
+        /* special case: there might be more than one IP */
+        LWIP_ERROR("len %% 4 == 0", len % 4 == 0, return ERR_VAL;);
+        /* only copy the first given IP */
+        decode_len = 4;
+        LWIP_ERROR("len >= decode_len", len >= decode_len, return ERR_VAL;);
+        decode_idx = DHCP_OPTION_IDX_MOBILE_AGENT;
+        break;
+#endif /* LWIP_DHCP_GET_MOBILE_AGENT */
       case (DHCP_OPTION_OVERLOAD):
         LWIP_ERROR("len == 1", len == 1, return ERR_VAL;);
         /* decode overload only in options, not in file/sname: invalid packet */

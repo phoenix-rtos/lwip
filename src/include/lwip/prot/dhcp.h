@@ -163,6 +163,7 @@ typedef enum {
 #define DHCP_OPTION_CLIENT_ID       61
 #define DHCP_OPTION_TFTP_SERVERNAME 66
 #define DHCP_OPTION_BOOTFILE        67
+#define DHCP_OPTION_MOBILE_AGENT    68
 
 /* possible combinations of overloading the file and sname fields with options */
 #define DHCP_OVERLOAD_NONE          0

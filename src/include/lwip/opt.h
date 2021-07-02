@@ -976,6 +976,13 @@
 #if !defined LWIP_DHCP_MAX_DNS_SERVERS || defined __DOXYGEN__
 #define LWIP_DHCP_MAX_DNS_SERVERS       DNS_MAX_SERVERS
 #endif
+
+/**
+ * LWIP_DHCP_GET_MOBILE_AGENT==1: Request Mobile Agent IP with discover/select.
+ */
+#if !defined LWIP_DHCP_GET_MOBILE_AGENT || defined __DOXYGEN__
+#define LWIP_DHCP_GET_MOBILE_AGENT      0
+#endif
 /**
  * @}
  */
