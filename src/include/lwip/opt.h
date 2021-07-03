@@ -1032,6 +1032,26 @@
  */
 
 /*
+   ------------------------------------
+   ---------- IPSEC support -----------
+   ------------------------------------
+*/
+/**
+ * @defgroup lwip_opts_ipsec EXT_IPSEC
+ * @ingroup lwip_opts_infrastructure
+ * @{
+ */
+/**
+ * LWIP_EXT_IPSEC==1: Enable support for external IPSEC driver.
+ */
+#if !defined LWIP_EXT_IPSEC || defined __DOXYGEN__
+#define LWIP_EXT_IPSEC                  0
+#endif
+/**
+ * @}
+ */
+
+/*
    ----------------------------------
    ----- SNMP MIB2 support      -----
    ----------------------------------

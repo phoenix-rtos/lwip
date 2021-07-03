@@ -131,6 +131,9 @@ enum lwip_internal_netif_client_data_index
    LWIP_NETIF_CLIENT_DATA_INDEX_MLD6,
 #endif
 #endif /* LWIP_IPV6 */
+#if LWIP_EXT_IPSEC
+   LWIP_NETIF_CLIENT_DATA_INDEX_IPSEC,
+#endif /* LWIP_EXT_IPSEC */
    LWIP_NETIF_CLIENT_DATA_INDEX_MAX
 };
 
@@ -237,6 +240,10 @@ u8_t netif_alloc_client_data_id(void);
 #define netif_get_client_data(netif, id)       (netif)->client_data[(id)]
 #endif
 
+#if LWIP_EXT_IPSEC
+#define netif_ipsec_data(netif) (netif_get_client_data(netif, LWIP_NETIF_CLIENT_DATA_INDEX_IPSEC))
+#endif /* LWIP_EXT_IPSEC */
+
 #if (LWIP_IPV4 && LWIP_ARP && (ARP_TABLE_SIZE > 0x7f)) || (LWIP_IPV6 && (LWIP_ND6_NUM_DESTINATIONS > 0x7f))
 typedef u16_t netif_addr_idx_t;
 #define NETIF_ADDR_IDX_MAX 0x7FFF
@@ -262,6 +269,18 @@ struct netif {
   /** pointer to next in linked list */
   struct netif *next;
 #endif
+
+#if LWIP_EXT_IPSEC
+#if LWIP_IPV4 || LWIP_IPV6
+  netif_input_fn ip_input;
+#endif
+#if LWIP_IPV4
+  netif_input_fn ip4_input;
+#endif
+#if LWIP_IPV6
+  netif_input_fn ip6_input;
+#endif
+#endif /* LWIP_EXT_IPSEC */
 
 #if LWIP_IPV4
   /** IP address configuration in network byte order */
