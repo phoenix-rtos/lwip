@@ -48,6 +48,8 @@ extern "C" {
 #define IP_PROTO_UDP     17
 #define IP_PROTO_UDPLITE 136
 #define IP_PROTO_TCP     6
+#define IP_PROTO_ESP     50
+#define IP_PROTO_AH      51
 
 /** This operates on a void* by loading the first byte */
 #define IP_HDR_GET_VERSION(ptr)   ((*(u8_t*)(ptr)) >> 4)

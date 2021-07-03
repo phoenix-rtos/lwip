@@ -287,7 +287,11 @@ tcpip_input(struct pbuf *p, struct netif *inp)
     return tcpip_inpkt(p, inp, ethernet_input);
   } else
 #endif /* LWIP_ETHERNET */
+#if LWIP_EXT_IPSEC
+    return tcpip_inpkt(p, inp, inp->ip_input);
+#else
     return tcpip_inpkt(p, inp, ip_input);
+#endif /* LWIP_EXT_IPSEC */
 }
 
 /**
