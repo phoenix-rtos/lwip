@@ -189,7 +189,11 @@ ethernet_input(struct pbuf *p, struct netif *netif)
         goto free_and_return;
       } else {
         /* pass to IP layer */
+#if LWIP_EXT_IPSEC
+        netif->ip4_input(p, netif);
+#else
         ip4_input(p, netif);
+#endif /* LWIP_EXT_IPSEC */
       }
       break;
 
@@ -232,7 +236,11 @@ ethernet_input(struct pbuf *p, struct netif *netif)
         goto free_and_return;
       } else {
         /* pass to IPv6 layer */
+#if LWIP_EXT_IPSEC
+        netif->ip6_input(p, netif);
+#else
         ip6_input(p, netif);
+#endif /* LWIP_EXT_IPSEC */
       }
       break;
 #endif /* LWIP_IPV6 */

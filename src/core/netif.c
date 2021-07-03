@@ -353,6 +353,17 @@ netif_add(struct netif *netif,
   netif->state = state;
   netif->num = netif_num;
   netif->input = input;
+#if LWIP_EXT_IPSEC
+#if LWIP_IPV4 || LWIP_IPV6
+  netif->ip_input = ip_input;
+#endif
+#if LWIP_IPV4
+  netif->ip4_input = ip4_input;
+#endif
+#if LWIP_IPV6
+  netif->ip6_input = ip6_input;
+#endif
+#endif /* LWIP_EXT_IPSEC */
 
   NETIF_RESET_HINTS(netif);
 #if ENABLE_LOOPBACK
