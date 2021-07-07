@@ -1779,8 +1779,8 @@ lwip_socket(int domain, int type, int protocol)
   struct netconn *conn;
   int i;
 
-#if LWIP_NETPACKET
   if (domain == AF_PACKET) {
+#if LWIP_NETPACKET
     /* create a netconn */
     switch (type) {
       case SOCK_RAW:
@@ -1801,8 +1801,11 @@ lwip_socket(int domain, int type, int protocol)
         return -1;
     }
     goto done;
-  }
+#else
+    set_errno(EINVAL);
+    return -1;
 #endif /* LWIP_NETPACKET */
+  }
 
   LWIP_UNUSED_ARG(domain); /* @todo: check this */
 
