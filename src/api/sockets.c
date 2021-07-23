@@ -1228,6 +1228,19 @@ lwip_recvfrom_netpacket(struct lwip_sock *sock, void *mem, size_t len, int flags
     struct sockaddr_ll *ll = (struct sockaddr_ll *)from;
     MEMCPY(ll->sll_addr, buf->netpacket_hwaddr, buf->netpacket_hwaddr_len);
     ll->sll_halen = buf->netpacket_hwaddr_len;
+
+    /* Set packet type */
+    u8_t pbuf_flags = ((struct pbuf *)buf->p)->flags;
+    if (pbuf_flags & PBUF_FLAG_HOST)
+      ll->sll_pkttype = PACKET_HOST;
+    else if (pbuf_flags & PBUF_FLAG_OTHERHOST)
+      ll->sll_pkttype = PACKET_OTHERHOST;
+    else if (pbuf_flags & PBUF_FLAG_LLBCAST)
+      ll->sll_pkttype = PACKET_BROADCAST;
+    else if (pbuf_flags & PBUF_FLAG_LLMCAST)
+      ll->sll_pkttype = PACKET_MULTICAST;
+    else
+      ll->sll_pkttype = PACKET_OUTGOING;
   }
 
   /* Retrieve data from pbufs */

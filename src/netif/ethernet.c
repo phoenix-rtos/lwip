@@ -110,6 +110,36 @@ ethernet_input(struct pbuf *p, struct netif *netif)
                (unsigned char)ethhdr->src.addr[3],  (unsigned char)ethhdr->src.addr[4],  (unsigned char)ethhdr->src.addr[5],
                lwip_htons(ethhdr->type)));
 
+  if (ethhdr->dest.addr[0] & 1) {
+    /* this might be a multicast or broadcast packet */
+    if (ethhdr->dest.addr[0] == LL_IP4_MULTICAST_ADDR_0) {
+#if LWIP_IPV4
+      if ((ethhdr->dest.addr[1] == LL_IP4_MULTICAST_ADDR_1) &&
+          (ethhdr->dest.addr[2] == LL_IP4_MULTICAST_ADDR_2)) {
+        /* mark the pbuf as link-layer multicast */
+        p->flags |= PBUF_FLAG_LLMCAST;
+      }
+#endif /* LWIP_IPV4 */
+    }
+#if LWIP_IPV6
+    else if ((ethhdr->dest.addr[0] == LL_IP6_MULTICAST_ADDR_0) &&
+             (ethhdr->dest.addr[1] == LL_IP6_MULTICAST_ADDR_1)) {
+      /* mark the pbuf as link-layer multicast */
+      p->flags |= PBUF_FLAG_LLMCAST;
+    }
+#endif /* LWIP_IPV6 */
+    else if (eth_addr_cmp(&ethhdr->dest, &ethbroadcast)) {
+      /* mark the pbuf as link-layer broadcast */
+      p->flags |= PBUF_FLAG_LLBCAST;
+    }
+  } else {
+    if (!memcmp(ethhdr->dest.addr, netif->hwaddr, ETH_HWADDR_LEN)) {
+      p->flags |= PBUF_FLAG_HOST;
+    } else {
+      p->flags |= PBUF_FLAG_OTHERHOST;
+    }
+  }
+
 #if LWIP_NETPACKET
   /* check netpacket stack first */
   if (LWIP_HOOK_NETPACKET_INPUT(p, netif) == 0)
@@ -148,30 +178,6 @@ ethernet_input(struct pbuf *p, struct netif *netif)
 #if LWIP_ARP_FILTER_NETIF
   netif = LWIP_ARP_FILTER_NETIF_FN(p, netif, lwip_htons(type));
 #endif /* LWIP_ARP_FILTER_NETIF*/
-
-  if (ethhdr->dest.addr[0] & 1) {
-    /* this might be a multicast or broadcast packet */
-    if (ethhdr->dest.addr[0] == LL_IP4_MULTICAST_ADDR_0) {
-#if LWIP_IPV4
-      if ((ethhdr->dest.addr[1] == LL_IP4_MULTICAST_ADDR_1) &&
-          (ethhdr->dest.addr[2] == LL_IP4_MULTICAST_ADDR_2)) {
-        /* mark the pbuf as link-layer multicast */
-        p->flags |= PBUF_FLAG_LLMCAST;
-      }
-#endif /* LWIP_IPV4 */
-    }
-#if LWIP_IPV6
-    else if ((ethhdr->dest.addr[0] == LL_IP6_MULTICAST_ADDR_0) &&
-             (ethhdr->dest.addr[1] == LL_IP6_MULTICAST_ADDR_1)) {
-      /* mark the pbuf as link-layer multicast */
-      p->flags |= PBUF_FLAG_LLMCAST;
-    }
-#endif /* LWIP_IPV6 */
-    else if (eth_addr_cmp(&ethhdr->dest, &ethbroadcast)) {
-      /* mark the pbuf as link-layer broadcast */
-      p->flags |= PBUF_FLAG_LLBCAST;
-    }
-  }
 
   switch (type) {
 #if LWIP_IPV4 && LWIP_ARP

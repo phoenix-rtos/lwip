@@ -181,6 +181,10 @@ typedef enum {
 #define PBUF_FLAG_LLMCAST   0x10U
 /** indicates this pbuf includes a TCP FIN flag */
 #define PBUF_FLAG_TCP_FIN   0x20U
+/** indicates this pbuf was received and addresed to our host */
+#define PBUF_FLAG_HOST      0x40U
+/** indicates this pbuf was received and not addresed to our host (promiscuous mode) */
+#define PBUF_FLAG_OTHERHOST 0x80U
 
 /** Main packet buffer struct */
 struct pbuf {
