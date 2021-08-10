@@ -620,7 +620,7 @@ dhcp_handle_ack(struct netif *netif, struct dhcp_msg *msg_in)
   ip4_addr_set_zero(&dhcp->offered_si_addr);
 #endif /* LWIP_DHCP_BOOTP_FILE */
 #if LWIP_DHCP_GET_MOBILE_AGENT
-  ip_addr_set_zero(&dhcp->offered_mobile_agent);
+  ip4_addr_set_zero(&dhcp->offered_mobile_agent);
 #endif /* LWIP_DHCP_GET_MOBILE_AGENT */
 
   /* lease time given? */
