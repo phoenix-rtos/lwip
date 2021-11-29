@@ -85,50 +85,6 @@
 #define API_SELECT_CB_VAR_ALLOC(name, retblock)   API_VAR_ALLOC_EXT(struct lwip_select_cb, MEMP_SELECT_CB, name, retblock)
 #define API_SELECT_CB_VAR_FREE(name)              API_VAR_FREE(MEMP_SELECT_CB, name)
 
-#ifndef LWIP_SOCKET_HAVE_SA_LEN
-#define LWIP_SOCKET_HAVE_SA_LEN 0
-#endif /* LWIP_SOCKET_HAVE_SA_LEN */
-
-/* Address length safe read and write */
-#if LWIP_SOCKET_HAVE_SA_LEN
-
-#if LWIP_IPV4
-#define IP4ADDR_SOCKADDR_SET_LEN(sin) \
-      (sin)->sin_len = sizeof(struct sockaddr_in)
-#endif /* LWIP_IPV4 */
-
-#if LWIP_IPV6
-#define IP6ADDR_SOCKADDR_SET_LEN(sin6) \
-      (sin6)->sin6_len = sizeof(struct sockaddr_in6)
-#endif /* LWIP_IPV6 */
-
-#define IPADDR_SOCKADDR_GET_LEN(addr) \
-      (addr)->sa.sa_len
-
-#else
-
-#if LWIP_IPV4
-#define IP4ADDR_SOCKADDR_SET_LEN(addr)
-#endif /* LWIP_IPV4 */
-
-#if LWIP_IPV6
-#define IP6ADDR_SOCKADDR_SET_LEN(addr)
-#endif /* LWIP_IPV6 */
-
-#if LWIP_IPV4 && LWIP_IPV6
-#define IPADDR_SOCKADDR_GET_LEN(addr) \
-      ((addr)->sa.sa_family == AF_INET ? sizeof(struct sockaddr_in) \
-        : ((addr)->sa.sa_family == AF_INET6 ? sizeof(struct sockaddr_in6) : 0))
-#elif LWIP_IPV4
-#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr_in)
-#elif LWIP_IPV6
-#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr_in6)
-#else
-#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr)
-#endif /* LWIP_IPV4 && LWIP_IPV6 */
-
-#endif /* LWIP_SOCKET_HAVE_SA_LEN */
-
 #if LWIP_IPV4
 #define IP4ADDR_PORT_TO_SOCKADDR(sin, ipaddr, port) do { \
       IP4ADDR_SOCKADDR_SET_LEN(sin); \
