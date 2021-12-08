@@ -41,55 +41,21 @@
 
 #include "lwip/opt.h"
 
+#if LWIP_SOCKET /* don't build if not configured for use in lwipopts.h */
+
+#if LWIP_SOCKET_EXTERNAL_HEADERS
+
+#ifndef LWIP_SOCKET_HAVE_SA_LEN
+#define LWIP_SOCKET_HAVE_SA_LEN 0
+#endif /* LWIP_SOCKET_HAVE_SA_LEN */
+
+#include LWIP_SOCKET_EXTERNAL_HEADER_SOCKETS_H
+
+#else /* LWIP_SOCKET_EXTERNAL_HEADERS */
+
 #ifndef LWIP_SOCKET_HAVE_SA_LEN
 #define LWIP_SOCKET_HAVE_SA_LEN 1
 #endif /* LWIP_SOCKET_HAVE_SA_LEN */
-
-/* Address length safe read and write */
-#if LWIP_SOCKET_HAVE_SA_LEN
-
-#if LWIP_IPV4
-#define IP4ADDR_SOCKADDR_SET_LEN(sin) \
-      (sin)->sin_len = sizeof(struct sockaddr_in)
-#endif /* LWIP_IPV4 */
-
-#if LWIP_IPV6
-#define IP6ADDR_SOCKADDR_SET_LEN(sin6) \
-      (sin6)->sin6_len = sizeof(struct sockaddr_in6)
-#endif /* LWIP_IPV6 */
-
-#define IPADDR_SOCKADDR_GET_LEN(addr) \
-      (addr)->sa.sa_len
-
-#else
-
-#if LWIP_IPV4
-#define IP4ADDR_SOCKADDR_SET_LEN(addr)
-#endif /* LWIP_IPV4 */
-
-#if LWIP_IPV6
-#define IP6ADDR_SOCKADDR_SET_LEN(addr)
-#endif /* LWIP_IPV6 */
-
-#if LWIP_IPV4 && LWIP_IPV6
-#define IPADDR_SOCKADDR_GET_LEN(addr) \
-      ((addr)->sa.sa_family == AF_INET ? sizeof(struct sockaddr_in) \
-        : ((addr)->sa.sa_family == AF_INET6 ? sizeof(struct sockaddr_in6) : 0))
-#elif LWIP_IPV4
-#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr_in)
-#elif LWIP_IPV6
-#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr_in6)
-#else
-#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr)
-#endif /* LWIP_IPV4 && LWIP_IPV6 */
-
-#endif /* LWIP_SOCKET_HAVE_SA_LEN */
-
-#if LWIP_SOCKET_EXTERNAL_HEADERS
-#include LWIP_SOCKET_EXTERNAL_HEADER_SOCKETS_H
-#else /* LWIP_SOCKET_EXTERNAL_HEADERS */
-
-#if LWIP_SOCKET /* don't build if not configured for use in lwipopts.h */
 
 #include "lwip/ip_addr.h"
 #include "lwip/netif.h"
@@ -98,10 +64,6 @@
 #include "lwip/errno.h"
 
 #include <string.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* If your port already typedef's sa_family_t, define SA_FAMILY_T_DEFINED
    to prevent this code from redefining it. */
@@ -314,6 +276,7 @@ struct linger {
 #define MSG_MORE       0x10    /* Sender will send more */
 #define MSG_NOSIGNAL   0x20    /* Uninmplemented: Requests not to send the SIGPIPE signal if an attempt to send is made on a stream-oriented socket that is no longer connected. */
 
+#endif /* LWIP_SOCKET_EXTERNAL_HEADERS */
 
 /*
  * Options for level IPPROTO_IP
@@ -575,6 +538,50 @@ struct timeval {
 };
 #endif /* LWIP_TIMEVAL_PRIVATE */
 
+/* Address length safe read and write */
+#if LWIP_SOCKET_HAVE_SA_LEN
+
+#if LWIP_IPV4
+#define IP4ADDR_SOCKADDR_SET_LEN(sin) \
+      (sin)->sin_len = sizeof(struct sockaddr_in)
+#endif /* LWIP_IPV4 */
+
+#if LWIP_IPV6
+#define IP6ADDR_SOCKADDR_SET_LEN(sin6) \
+      (sin6)->sin6_len = sizeof(struct sockaddr_in6)
+#endif /* LWIP_IPV6 */
+
+#define IPADDR_SOCKADDR_GET_LEN(addr) \
+      (addr)->sa.sa_len
+
+#else
+
+#if LWIP_IPV4
+#define IP4ADDR_SOCKADDR_SET_LEN(addr)
+#endif /* LWIP_IPV4 */
+
+#if LWIP_IPV6
+#define IP6ADDR_SOCKADDR_SET_LEN(addr)
+#endif /* LWIP_IPV6 */
+
+#if LWIP_IPV4 && LWIP_IPV6
+#define IPADDR_SOCKADDR_GET_LEN(addr) \
+      ((addr)->sa.sa_family == AF_INET ? sizeof(struct sockaddr_in) \
+        : ((addr)->sa.sa_family == AF_INET6 ? sizeof(struct sockaddr_in6) : 0))
+#elif LWIP_IPV4
+#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr_in)
+#elif LWIP_IPV6
+#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr_in6)
+#else
+#define IPADDR_SOCKADDR_GET_LEN(addr) sizeof(struct sockaddr)
+#endif /* LWIP_IPV4 && LWIP_IPV6 */
+
+#endif /* LWIP_SOCKET_HAVE_SA_LEN */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define lwip_socket_init() /* Compatibility define, no init needed. */
 void lwip_socket_thread_init(void); /* LWIP_NETCONN_SEM_PER_THREAD==1: initialize thread-local semaphore */
 void lwip_socket_thread_cleanup(void); /* LWIP_NETCONN_SEM_PER_THREAD==1: destroy thread-local semaphore */
@@ -734,7 +741,5 @@ int lwip_inet_pton(int af, const char *src, void *dst);
 #endif
 
 #endif /* LWIP_SOCKET */
-
-#endif /* LWIP_SOCKET_EXTERNAL_HEADERS */
 
 #endif /* LWIP_HDR_SOCKETS_H */

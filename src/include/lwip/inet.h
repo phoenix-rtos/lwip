@@ -90,6 +90,8 @@ struct in6_addr {
 /** This variable is initialized by the system to contain the wildcard IPv6 address. */
 extern const struct in6_addr in6addr_any;
 
+#endif /* LWIP_SOCKET_EXTERNAL_HEADERS */
+
 /* Definitions of the bits in an (IPv4) Internet address integer.
 
    On subnets, host and network parts are found according to
@@ -166,11 +168,8 @@ extern const struct in6_addr in6addr_any;
 
 #endif /* LWIP_IPV6 */
 
-
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* LWIP_SOCKET_EXTERNAL_HEADERS */
 
 #endif /* LWIP_HDR_INET_H */
