@@ -273,6 +273,7 @@ struct linger {
 #define IP_TOS             1
 #define IP_TTL             2
 #define IP_PKTINFO         8
+#define IP_IPSEC_POLICY    16 /* unsupported */
 
 #if LWIP_TCP
 /*
