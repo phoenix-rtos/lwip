@@ -33,6 +33,7 @@
 
 #include "netif/ppp/ppp_impl.h"
 #include "netif/ppp/pppdebug.h"
+#include "lwip/inet_chksum.h"
 
 #include "netif/ppp/vj.h"
 
@@ -611,12 +612,7 @@ vj_uncompress_tcp(struct pbuf **nb, struct vjcompress *comp)
   /* recompute the ip header checksum */
   bp = (struct vj_u16_t*) &cs->cs_ip;
   IPH_CHKSUM_SET(&cs->cs_ip, 0);
-  for (tmp = 0; hlen > 0; hlen -= 2) {
-    tmp += (*bp++).v;
-  }
-  tmp = (tmp & 0xffff) + (tmp >> 16);
-  tmp = (tmp & 0xffff) + (tmp >> 16);
-  IPH_CHKSUM_SET(&cs->cs_ip,  (u16_t)(~tmp));
+  IPH_CHKSUM_SET(&cs->cs_ip, inet_chksum(bp, hlen));
 
   /* Remove the compressed header and prepend the uncompressed header. */
   if (pbuf_remove_header(n0, vjlen)) {
