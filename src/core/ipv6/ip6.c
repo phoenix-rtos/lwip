@@ -1049,6 +1049,7 @@ options_done:
   ip_data.current_ip_header_tot_len = hlen_tot;
   
 #if LWIP_RAW
+#if 0
   /* p points to IPv6 header again for raw_input. */
   pbuf_add_header_force(p, hlen_tot);
   /* raw input did not eat the packet? */
@@ -1057,6 +1058,16 @@ options_done:
   {
     /* Point to payload. */
     pbuf_remove_header(p, hlen_tot);
+#else
+  /*
+   * This is a temporary workaround!
+   * The IPv6 header should be removed in a different place, to enable
+   * proper implementation of recvmsg (which we do not have yet) for raw socket.
+   */
+  raw_status = raw_input_proto(p, inp, (s16_t)*nexth);
+  if (raw_status != RAW_INPUT_EATEN)
+  {
+#endif
 #else /* LWIP_RAW */
   {
 #endif /* LWIP_RAW */

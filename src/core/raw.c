@@ -134,12 +134,7 @@ raw_input_local_match(struct raw_pcb *pcb, u8_t broadcast)
 raw_input_state_t
 raw_input(struct pbuf *p, struct netif *inp)
 {
-  struct raw_pcb *pcb, *prev;
   s16_t proto;
-  raw_input_state_t ret = RAW_INPUT_NONE;
-  u8_t broadcast = ip_addr_isbroadcast(ip_current_dest_addr(), ip_current_netif());
-
-  LWIP_UNUSED_ARG(inp);
 
 #if LWIP_IPV6
 #if LWIP_IPV4
@@ -158,6 +153,18 @@ raw_input(struct pbuf *p, struct netif *inp)
     proto = IPH_PROTO((struct ip_hdr *)p->payload);
   }
 #endif /* LWIP_IPV4 */
+  return raw_input_proto(p, inp, proto);
+}
+
+
+raw_input_state_t
+raw_input_proto(struct pbuf *p, struct netif *inp, s16_t proto)
+{
+  struct raw_pcb *pcb, *prev;
+  raw_input_state_t ret = RAW_INPUT_NONE;
+  u8_t broadcast = ip_addr_isbroadcast(ip_current_dest_addr(), ip_current_netif());
+
+  LWIP_UNUSED_ARG(inp);
 
   prev = NULL;
   pcb = raw_pcbs;
