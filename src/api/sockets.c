@@ -1659,6 +1659,7 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
   u16_t short_size;
   u16_t remote_port;
   struct netbuf buf;
+  int needs_data_copy;
 
   sock = get_socket(s);
   if (!sock) {
@@ -1745,26 +1746,43 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
   ip_addr_debug_print_val(SOCKETS_DEBUG, buf.addr);
   LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F"\n", remote_port));
 
-  /* make the buffer point to the data that should be sent */
+  /* determine whether the buffer should be copied */
 #if LWIP_NETIF_TX_SINGLE_PBUF
-  /* Allocate a new netbuf and copy the data into it. */
-  if (netbuf_alloc(&buf, short_size) == NULL) {
-    err = ERR_MEM;
-  } else {
-#if LWIP_CHECKSUM_ON_COPY
-    if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_RAW) {
-      u16_t chksum = LWIP_CHKSUM_COPY(buf.p->payload, data, short_size);
-      netbuf_set_chksum(&buf, chksum);
-    } else
-#endif /* LWIP_CHECKSUM_ON_COPY */
-    {
-      MEMCPY(buf.p->payload, data, short_size);
-    }
-    err = ERR_OK;
-  }
+  needs_data_copy = 1;
 #else /* LWIP_NETIF_TX_SINGLE_PBUF */
-  err = netbuf_ref(&buf, data, short_size);
+#if LWIP_IPV6
+  if (IP_IS_V6_VAL(buf.addr) && sock->conn->type == NETCONN_RAW_IPV6 &&
+      sock->conn->pcb.raw->chksum_reqd == 1) {
+    /* In this case a new buffer is needed. Otherwise writing checksum
+       in the payload would stand in conflict with data being const */
+    needs_data_copy = 1;
+  } else
+#endif /* LWIP_IPV6 */
+  {
+    needs_data_copy = 0;
+  }
 #endif /* LWIP_NETIF_TX_SINGLE_PBUF */
+
+  /* make the buffer point to the data that should be sent */
+  if (needs_data_copy) {
+    /* Allocate a new netbuf and copy the data into it. */
+    if (netbuf_alloc(&buf, short_size) == NULL) {
+      err = ERR_MEM;
+    } else {
+#if LWIP_CHECKSUM_ON_COPY
+      if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_RAW) {
+        u16_t chksum = LWIP_CHKSUM_COPY(buf.p->payload, data, short_size);
+        netbuf_set_chksum(&buf, chksum);
+      } else
+#endif /* LWIP_CHECKSUM_ON_COPY */
+      {
+        MEMCPY(buf.p->payload, data, short_size);
+      }
+      err = ERR_OK;
+    }
+  } else {
+    err = netbuf_ref(&buf, data, short_size);
+  }
   if (err == ERR_OK) {
 #if LWIP_IPV4 && LWIP_IPV6
     /* Dual-stack: Unmap IPv4 mapped IPv6 addresses */
