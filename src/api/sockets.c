@@ -726,13 +726,6 @@ lwip_bind(int s, const struct sockaddr *name, socklen_t namelen)
     return -1;
   }
 
-  if (!SOCK_ADDR_TYPE_MATCH(name, sock)) {
-    /* sockaddr does not match socket type (IPv4/IPv6) */
-    sock_set_errno(sock, err_to_errno(ERR_VAL));
-    done_socket(sock);
-    return -1;
-  }
-
 #if LWIP_NETPACKET
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_NETPACKET_RAW) {
     const struct sockaddr_ll *ll = (const struct sockaddr_ll *) name;
@@ -744,6 +737,13 @@ lwip_bind(int s, const struct sockaddr *name, socklen_t namelen)
     goto done;
   }
 #endif /* LWIP_NETPACKET */
+
+  if (!SOCK_ADDR_TYPE_MATCH(name, sock)) {
+    /* sockaddr does not match socket type (IPv4/IPv6) */
+    sock_set_errno(sock, err_to_errno(ERR_VAL));
+    done_socket(sock);
+    return -1;
+  }
 
   /* check size, family and alignment of 'name' */
   LWIP_ERROR("lwip_bind: invalid address", (IS_SOCK_ADDR_LEN_VALID(namelen) &&
