@@ -737,7 +737,7 @@ lwip_bind(int s, const struct sockaddr *name, socklen_t namelen)
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_NETPACKET_RAW) {
     const struct sockaddr_ll *ll = (const struct sockaddr_ll *) name;
     if (name == NULL || namelen != sizeof(struct sockaddr_ll) || ll->sll_family != AF_PACKET) {
-      err = -EINVAL;
+      err = ERR_VAL;
     } else {
       err = netconn_bind_if(sock->conn, ll->sll_ifindex);
     }
