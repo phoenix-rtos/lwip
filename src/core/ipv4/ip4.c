@@ -453,6 +453,12 @@ ip4_input(struct pbuf *p, struct netif *inp)
     return ERR_OK;
   }
 
+#if LWIP_NETPACKET
+    if ((inp->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) == 0) {
+        LWIP_HOOK_NETPACKET_RAW_INPUT(p, inp);
+    }
+#endif /* LWIP_NETPACKET */
+
 #ifdef LWIP_HOOK_IP4_INPUT
   if (LWIP_HOOK_IP4_INPUT(p, inp)) {
     /* the packet has been eaten */
